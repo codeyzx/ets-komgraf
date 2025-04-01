@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Core;
 using Drawing;
 using Godot;
@@ -7,194 +6,261 @@ using Godot;
 namespace UI
 {
     /// <summary>
-    /// Renders a traditional building structure with customizable properties.
-    /// Uses a modular architecture with separate components for different parts of the building.
+    /// Represents the Karya3 scene, which displays a traditional building with horror elements.
     /// </summary>
     public partial class Karya3 : Node2D
     {
-        // Building renderer and configuration
+        // Building renderer
         private BuildingRenderer _buildingRenderer;
-        private BuildingConfiguration _config = new BuildingConfiguration();
 
-        // Animation state
-        private bool _animationStarted = false;
-        private float _animationSpeed = 1.0f;
-        private float _rotationSpeed = 1.0f;
-        private float _scaleSpeed = 1.0f;
-
-        // UI elements for displaying controls
-        private Label _controlsLabel;
-        private Label _statusLabel;
-
-        // Export properties to make them configurable in the Godot editor
-        [Export]
-        private Color PrimaryColor
+        // Building configuration
+        private BuildingConfiguration _config = new BuildingConfiguration
         {
-            get => _config.PrimaryColor;
-            set => _config.PrimaryColor = value;
-        }
+            PrimaryColor = new Color(0.3f, 0.3f, 0.35f), // Darker color for horror theme
+            OutlineColor = new Color(0.1f, 0.1f, 0.1f),
+            OutlineThickness = 2f,
+            WindowLineCount = 3,
+            RoofSegments = 10,
+            LadderLength = 80,
+        };
 
-        [Export]
-        private Color SecondaryColor
-        {
-            get => _config.SecondaryColor;
-            set => _config.SecondaryColor = value;
-        }
+        // UI controls
+        private Label _animationSpeedLabel;
+        private Label _rotationSpeedLabel;
+        private Label _scaleSpeedLabel;
+        private Label _horrorEffectLabel;
+        private float _horrorEffectIntensity = 1.0f;
 
-        [Export]
-        private Color OutlineColor
-        {
-            get => _config.OutlineColor;
-            set => _config.OutlineColor = value;
-        }
-
-        [Export]
-        private float BaseWidth
-        {
-            get => _config.BaseWidth;
-            set => _config.BaseWidth = value;
-        }
-
-        [Export]
-        private float BaseHeight
-        {
-            get => _config.BaseHeight;
-            set => _config.BaseHeight = value;
-        }
-
-        [Export]
-        private float RoofHeight
-        {
-            get => _config.RoofHeight;
-            set => _config.RoofHeight = value;
-        }
-
-        [Export]
-        private float WallHeight
-        {
-            get => _config.WallHeight;
-            set => _config.WallHeight = value;
-        }
-
-        [Export]
-        private float StairHeight
-        {
-            get => _config.StairHeight;
-            set => _config.StairHeight = value;
-        }
-
-        [Export]
-        private float OutlineThickness
-        {
-            get => _config.OutlineThickness;
-            set => _config.OutlineThickness = value;
-        }
-
-        [Export]
-        private int RoofSegments
-        {
-            get => _config.RoofSegments;
-            set => _config.RoofSegments = value;
-        }
-
-        [Export]
-        private int PanelCount
-        {
-            get => _config.PanelCount;
-            set => _config.PanelCount = value;
-        }
-
-        [Export]
-        private int ColumnCount
-        {
-            get => _config.ColumnCount;
-            set => _config.ColumnCount = value;
-        }
-
-        [Export]
-        private int WindowLineCount
-        {
-            get => _config.WindowLineCount;
-            set => _config.WindowLineCount = value;
-        }
-
-        [Export]
-        private float LadderWidth
-        {
-            get => _config.LadderWidth;
-            set => _config.LadderWidth = value;
-        }
-
-        [Export]
-        private float LadderLength
-        {
-            get => _config.LadderLength;
-            set => _config.LadderLength = value;
-        }
-
-        [Export]
-        private int LadderStepCount
-        {
-            get => _config.LadderStepCount;
-            set => _config.LadderStepCount = value;
-        }
+        // Horror effects
+        private ColorRect _darkOverlay;
+        private Timer _flickerTimer;
+        private Random _random = new Random();
 
         /// <summary>
         /// Called when the node enters the scene tree for the first time.
         /// </summary>
         public override void _Ready()
         {
-            // Initialize the building renderer
+            base._Ready();
+
+            // Initialize building renderer
             _buildingRenderer = new BuildingRenderer(this, _config);
 
-            // Create UI elements for displaying controls
-            CreateControlsUI();
+            // Initialize drawing parameters
+            _buildingRenderer.InitializeDrawingParameters(GetViewportRect().Size);
 
-            // Force a redraw to render the building
+            // Create UI controls
+            CreateControls();
+
+            // Create horror effects
+            CreateHorrorEffects();
+        }
+
+        /// <summary>
+        /// Creates the horror visual effects for the scene
+        /// </summary>
+        private void CreateHorrorEffects()
+        {
+            // Create dark overlay for horror atmosphere
+            _darkOverlay = new ColorRect();
+            _darkOverlay.AnchorRight = 1;
+            _darkOverlay.AnchorBottom = 1;
+            _darkOverlay.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            _darkOverlay.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+            _darkOverlay.Color = new Color(0, 0, 0, 0.3f);
+            AddChild(_darkOverlay);
+
+            // Create flicker timer
+            _flickerTimer = new Timer();
+            _flickerTimer.WaitTime = 0.1f;
+            _flickerTimer.Autostart = false;
+            _flickerTimer.OneShot = true;
+            _flickerTimer.Timeout += OnFlickerTimeout;
+            AddChild(_flickerTimer);
+        }
+
+        /// <summary>
+        /// Handles the flicker effect timeout
+        /// </summary>
+        private void OnFlickerTimeout()
+        {
+            if (_random.NextDouble() < 0.3f * _horrorEffectIntensity)
+            {
+                // Create a brief flicker
+                _darkOverlay.Color = new Color(
+                    0,
+                    0,
+                    0,
+                    0.3f + (float)_random.NextDouble() * 0.3f * _horrorEffectIntensity
+                );
+                _flickerTimer.WaitTime = 0.05f + (float)_random.NextDouble() * 0.1f;
+            }
+            else
+            {
+                // Reset flicker
+                _darkOverlay.Color = new Color(0, 0, 0, 0.3f);
+                _flickerTimer.WaitTime = 0.5f + (float)_random.NextDouble() * 2.0f;
+            }
+
+            _flickerTimer.Start();
+        }
+
+        /// <summary>
+        /// Creates UI controls for the animation.
+        /// </summary>
+        private void CreateControls()
+        {
+            // Create a VBoxContainer for the labels
+            VBoxContainer vbox = new VBoxContainer();
+            vbox.AnchorTop = 0;
+            vbox.AnchorBottom = 0;
+            vbox.AnchorLeft = 0;
+            vbox.AnchorRight = 0;
+            vbox.Position = new Vector2(10, 10);
+            AddChild(vbox);
+
+            // Create title label
+            Label titleLabel = new Label();
+            titleLabel.Text = "Horror Animation Controls";
+            titleLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.1f, 0.1f));
+            vbox.AddChild(titleLabel);
+
+            // Create animation controls label
+            Label controlsLabel = new Label();
+            controlsLabel.Text = "Press SPACE to start/restart animation";
+            controlsLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
+            vbox.AddChild(controlsLabel);
+
+            // Create animation speed label
+            _animationSpeedLabel = new Label();
+            _animationSpeedLabel.Text = "Animation Speed (1-5): 1";
+            _animationSpeedLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
+            vbox.AddChild(_animationSpeedLabel);
+
+            // Create rotation speed label
+            _rotationSpeedLabel = new Label();
+            _rotationSpeedLabel.Text = "Rotation Speed (Q/W): 0";
+            _rotationSpeedLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
+            vbox.AddChild(_rotationSpeedLabel);
+
+            // Create scale speed label
+            _scaleSpeedLabel = new Label();
+            _scaleSpeedLabel.Text = "Scale Speed (A/S): 0";
+            _scaleSpeedLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
+            vbox.AddChild(_scaleSpeedLabel);
+
+            // Create horror effect label
+            _horrorEffectLabel = new Label();
+            _horrorEffectLabel.Text = "Horror Effect (Z/X): 1.0";
+            _horrorEffectLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.1f, 0.1f));
+            vbox.AddChild(_horrorEffectLabel);
+        }
+
+        /// <summary>
+        /// Handles input events.
+        /// </summary>
+        /// <param name="event">The input event.</param>
+        public override void _Input(InputEvent @event)
+        {
+            if (@event is InputEventKey keyEvent && keyEvent.Pressed)
+            {
+                switch (keyEvent.Keycode)
+                {
+                    case Key.Space:
+                        // Start/restart animation
+                        _buildingRenderer.StartAnimation();
+
+                        // Start flicker effect
+                        _flickerTimer.Start();
+                        break;
+
+                    case Key.Key1:
+                        _buildingRenderer.SetAnimationSpeed(1.0f);
+                        _animationSpeedLabel.Text = "Animation Speed (1-5): 1";
+                        break;
+
+                    case Key.Key2:
+                        _buildingRenderer.SetAnimationSpeed(1.5f);
+                        _animationSpeedLabel.Text = "Animation Speed (1-5): 2";
+                        break;
+
+                    case Key.Key3:
+                        _buildingRenderer.SetAnimationSpeed(2.0f);
+                        _animationSpeedLabel.Text = "Animation Speed (1-5): 3";
+                        break;
+
+                    case Key.Key4:
+                        _buildingRenderer.SetAnimationSpeed(2.5f);
+                        _animationSpeedLabel.Text = "Animation Speed (1-5): 4";
+                        break;
+
+                    case Key.Key5:
+                        _buildingRenderer.SetAnimationSpeed(3.0f);
+                        _animationSpeedLabel.Text = "Animation Speed (1-5): 5";
+                        break;
+
+                    case Key.Q:
+                        // Decrease rotation speed by 0.5
+                        float rotationSpeed = 0.5f;
+                        _buildingRenderer.SetRotationSpeed(rotationSpeed);
+                        _rotationSpeedLabel.Text = $"Rotation Speed (Q/W): {rotationSpeed}";
+                        break;
+
+                    case Key.W:
+                        // Increase rotation speed by 0.5
+                        rotationSpeed = 1.0f;
+                        _buildingRenderer.SetRotationSpeed(rotationSpeed);
+                        _rotationSpeedLabel.Text = $"Rotation Speed (Q/W): {rotationSpeed}";
+                        break;
+
+                    case Key.A:
+                        // Decrease scale speed by 0.5
+                        float scaleSpeed = 0.5f;
+                        _buildingRenderer.SetScaleSpeed(scaleSpeed);
+                        _scaleSpeedLabel.Text = $"Scale Speed (A/S): {scaleSpeed}";
+                        break;
+
+                    case Key.S:
+                        // Increase scale speed by 0.5
+                        scaleSpeed = 1.0f;
+                        _buildingRenderer.SetScaleSpeed(scaleSpeed);
+                        _scaleSpeedLabel.Text = $"Scale Speed (A/S): {scaleSpeed}";
+                        break;
+
+                    case Key.Z:
+                        _horrorEffectIntensity = Math.Max(0, _horrorEffectIntensity - 0.1f);
+                        _horrorEffectLabel.Text =
+                            $"Horror Effect (Z/X): {_horrorEffectIntensity:F1}";
+                        UpdateHorrorEffects();
+                        break;
+
+                    case Key.X:
+                        _horrorEffectIntensity = Math.Min(2.0f, _horrorEffectIntensity + 0.1f);
+                        _horrorEffectLabel.Text =
+                            $"Horror Effect (Z/X): {_horrorEffectIntensity:F1}";
+                        UpdateHorrorEffects();
+                        break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Updates the horror effects based on the current intensity
+        /// </summary>
+        private void UpdateHorrorEffects()
+        {
+            // Update overlay darkness
+            _darkOverlay.Color = new Color(0, 0, 0, 0.3f * _horrorEffectIntensity);
+        }
+
+        /// <summary>
+        /// Called every frame.
+        /// </summary>
+        /// <param name="delta">Time elapsed since the last frame.</param>
+        public override void _Process(double delta)
+        {
+            _buildingRenderer.UpdateAnimation((float)delta);
             QueueRedraw();
-        }
-
-        /// <summary>
-        /// Creates UI elements for displaying controls.
-        /// </summary>
-        private void CreateControlsUI()
-        {
-            // Create a label for displaying controls
-            _controlsLabel = new Label
-            {
-                Text =
-                    "Controls:\n"
-                    + "Space - Start/Restart Animation\n"
-                    + "1-5 - Set Animation Speed (1=slowest, 5=fastest)\n"
-                    + "Q/W - Decrease/Increase Rotation Speed\n"
-                    + "A/S - Decrease/Increase Scale Speed",
-                Position = new Vector2(20, 20),
-                Theme = new Theme(),
-            };
-
-            // Create a label for displaying status
-            _statusLabel = new Label
-            {
-                Text = "Animation: Not Started",
-                Position = new Vector2(20, 120),
-                Theme = new Theme(),
-            };
-
-            // Add the labels to the scene
-            AddChild(_controlsLabel);
-            AddChild(_statusLabel);
-        }
-
-        /// <summary>
-        /// Updates the status label with the current animation parameters.
-        /// </summary>
-        private void UpdateStatusLabel()
-        {
-            _statusLabel.Text =
-                $"Animation: {(_animationStarted ? "Running" : "Not Started")}\n"
-                + $"Speed: {_animationSpeed:F1}x\n"
-                + $"Rotation: {_rotationSpeed:F1}\n"
-                + $"Scale: {_scaleSpeed:F1}";
         }
 
         /// <summary>
@@ -202,112 +268,7 @@ namespace UI
         /// </summary>
         public override void _Draw()
         {
-            // Initialize drawing parameters based on the current viewport size
-            _buildingRenderer.InitializeDrawingParameters(GetViewportRect().Size);
-
-            // Draw the building with all its components
             _buildingRenderer.Draw();
-        }
-
-        /// <summary>
-        /// Called every frame to update the scene.
-        /// </summary>
-        public override void _Process(double delta)
-        {
-            base._Process(delta);
-
-            // Update animation if started
-            if (_animationStarted)
-            {
-                _buildingRenderer.UpdateAnimation((float)delta);
-                QueueRedraw();
-            }
-        }
-
-        /// <summary>
-        /// Handles input events.
-        /// </summary>
-        public override void _Input(InputEvent @event)
-        {
-            base._Input(@event);
-
-            // Check for keyboard input
-            if (@event is InputEventKey keyEvent && keyEvent.Pressed)
-            {
-                HandleKeyInput(keyEvent.Keycode);
-            }
-        }
-
-        /// <summary>
-        /// Handles keyboard input.
-        /// </summary>
-        private void HandleKeyInput(Key keycode)
-        {
-            switch (keycode)
-            {
-                case Key.Space:
-                    // Start/restart animation
-                    _animationStarted = true;
-                    _buildingRenderer.StartAnimation();
-                    break;
-
-                case Key.Key1:
-                    // Set animation speed to 0.5x
-                    _animationSpeed = 0.5f;
-                    _buildingRenderer.SetAnimationSpeed(_animationSpeed);
-                    break;
-
-                case Key.Key2:
-                    // Set animation speed to 1.0x
-                    _animationSpeed = 1.0f;
-                    _buildingRenderer.SetAnimationSpeed(_animationSpeed);
-                    break;
-
-                case Key.Key3:
-                    // Set animation speed to 1.5x
-                    _animationSpeed = 1.5f;
-                    _buildingRenderer.SetAnimationSpeed(_animationSpeed);
-                    break;
-
-                case Key.Key4:
-                    // Set animation speed to 2.0x
-                    _animationSpeed = 2.0f;
-                    _buildingRenderer.SetAnimationSpeed(_animationSpeed);
-                    break;
-
-                case Key.Key5:
-                    // Set animation speed to 3.0x
-                    _animationSpeed = 3.0f;
-                    _buildingRenderer.SetAnimationSpeed(_animationSpeed);
-                    break;
-
-                case Key.Q:
-                    // Decrease rotation speed
-                    _rotationSpeed = Math.Max(0.1f, _rotationSpeed - 0.5f);
-                    _buildingRenderer.SetRotationSpeed(_rotationSpeed);
-                    break;
-
-                case Key.W:
-                    // Increase rotation speed
-                    _rotationSpeed += 0.5f;
-                    _buildingRenderer.SetRotationSpeed(_rotationSpeed);
-                    break;
-
-                case Key.A:
-                    // Decrease scale speed
-                    _scaleSpeed = Math.Max(0.1f, _scaleSpeed - 0.5f);
-                    _buildingRenderer.SetScaleSpeed(_scaleSpeed);
-                    break;
-
-                case Key.S:
-                    // Increase scale speed
-                    _scaleSpeed += 0.5f;
-                    _buildingRenderer.SetScaleSpeed(_scaleSpeed);
-                    break;
-            }
-
-            // Update the status label
-            UpdateStatusLabel();
         }
 
         /// <summary>
@@ -318,10 +279,10 @@ namespace UI
             base._Notification(what);
 
             // Check if the notification is for a resize
-            if (what == NotificationWMSizeChanged)
+            if (what == NotificationWMSizeChanged && _buildingRenderer != null)
             {
-                // Queue a redraw to update the building with the new viewport size
-                QueueRedraw();
+                // Update drawing parameters with the new viewport size
+                _buildingRenderer.InitializeDrawingParameters(GetViewportRect().Size);
             }
         }
     }

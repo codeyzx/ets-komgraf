@@ -6,12 +6,13 @@ using Godot;
 namespace Drawing.Components
 {
     /// <summary>
-    /// Component for drawing an animated person.
+    /// Component for drawing an animated Begu Ganjang ghost.
     /// </summary>
     public class PersonComponent : BuildingComponent
     {
-        private readonly Color _personColor;
+        private readonly Color _ghostColor;
         private readonly Color _outlineColor;
+        private readonly Color _tongueColor;
         private readonly float _outlineThickness;
 
         // Animation properties
@@ -27,6 +28,20 @@ namespace Drawing.Components
         // Animation state
         private bool _isVisible = false;
         private float _animationProgress = 0f;
+        private float _tongueAnimation = 0f;
+        private float _floatingAnimation = 0f;
+
+        private float _floatTime = 0f;
+        private float _floatAmplitude = 5f;
+        private float _floatSpeed = 1f;
+
+        private float _tongueExtension = 0f;
+        private float _tongueDirection = 1f;
+        private float _tongueSpeed = 2f;
+
+        private float _moveSpeed = 100f;
+        private float _rotationSpeed = 2f;
+        private float _scaleSpeed = 1f;
 
         /// <summary>
         /// Initializes a new instance of the PersonComponent class.
@@ -36,15 +51,16 @@ namespace Drawing.Components
             Primitif primitif,
             BuildingDimensions dimensions,
             float scaleFactor,
-            Color personColor,
+            Color ghostColor,
             Color outlineColor,
             float outlineThickness,
             Vector2 initialPosition
         )
             : base(canvas, primitif, dimensions, scaleFactor)
         {
-            _personColor = personColor;
+            _ghostColor = ghostColor;
             _outlineColor = outlineColor;
+            _tongueColor = new Color(0.9f, 0.2f, 0.2f); // Red color for tongue
             _outlineThickness = outlineThickness;
 
             // Initialize animation properties
@@ -54,6 +70,15 @@ namespace Drawing.Components
             _targetScale = 1f;
             _rotation = 0f;
             _targetRotation = 0f;
+        }
+
+        /// <summary>
+        /// Gets the current position of the person.
+        /// </summary>
+        /// <returns>The current position.</returns>
+        public Vector2 GetPosition()
+        {
+            return _position;
         }
 
         /// <summary>
@@ -81,7 +106,7 @@ namespace Drawing.Components
         }
 
         /// <summary>
-        /// Sets the visibility of the person.
+        /// Sets the visibility of the ghost.
         /// </summary>
         public void SetVisible(bool visible)
         {
@@ -91,164 +116,167 @@ namespace Drawing.Components
         /// <summary>
         /// Updates the animation with the specified delta time and speed.
         /// </summary>
-        public void UpdateAnimation(float delta, float speed)
+        public void UpdateAnimation(float delta, float speedMultiplier = 1.0f)
+        {
+            // Update position
+            Vector2 direction = _targetPosition - _position;
+            if (direction.Length() > 1f)
+            {
+                _position += direction.Normalized() * _moveSpeed * delta * speedMultiplier;
+            }
+
+            // Update rotation
+            float rotationDiff = _targetRotation - _rotation;
+            if (Math.Abs(rotationDiff) > 0.01f)
+            {
+                _rotation += rotationDiff * _rotationSpeed * delta * speedMultiplier;
+            }
+
+            // Update scale
+            float scaleDiff = _targetScale - _scale;
+            if (Math.Abs(scaleDiff) > 0.01f)
+            {
+                _scale += scaleDiff * _scaleSpeed * delta * speedMultiplier;
+            }
+
+            // Update tongue animation
+            _tongueExtension += _tongueDirection * _tongueSpeed * delta * speedMultiplier;
+            if (_tongueExtension > 0.5f)
+            {
+                _tongueExtension = 0.5f;
+                _tongueDirection = -1f;
+            }
+            else if (_tongueExtension < 0f)
+            {
+                _tongueExtension = 0f;
+                _tongueDirection = 1f;
+            }
+
+            // Update floating animation
+            _floatTime += _floatSpeed * delta * speedMultiplier;
+        }
+
+        /// <summary>
+        /// Draws the ghost.
+        /// </summary>
+        public override void Draw()
         {
             if (!_isVisible)
                 return;
 
-            // Update animation progress
-            _animationProgress = Math.Min(_animationProgress + delta * speed, 1f);
+            // Calculate floating effect
+            float floatY = (float)Math.Sin(_floatTime) * _floatAmplitude;
 
-            // Interpolate position, scale, and rotation
-            _position = _position.Lerp(_targetPosition, delta * speed * 2f);
-            _scale = Mathf.Lerp(_scale, _targetScale, delta * speed * 3f);
-            _rotation = Mathf.Lerp(_rotation, _targetRotation, delta * speed * 4f);
-        }
-
-        /// <summary>
-        /// Draws the person.
-        /// </summary>
-        public override void Draw()
-        {
-            if (!_isVisible || _scale <= 0.01f)
-                return;
-
-            // In Godot, we need to apply transformations to our drawing coordinates
-            // rather than transforming the canvas itself
-            DrawPerson(_position, _scale, _rotation);
-        }
-
-        /// <summary>
-        /// Draws the person figure with the specified transformations.
-        /// </summary>
-        private void DrawPerson(Vector2 position, float scale, float rotation)
-        {
-            float personHeight = 30f * ScaleFactor * scale;
-            float personWidth = 15f * ScaleFactor * scale;
-
-            // Apply transformations to all points
-            Vector2 TransformPoint(Vector2 point)
-            {
-                // Scale
-                Vector2 scaled = point * scale;
-
-                // Rotate
-                float cos = (float)Math.Cos(rotation);
-                float sin = (float)Math.Sin(rotation);
-                Vector2 rotated = new Vector2(
-                    scaled.X * cos - scaled.Y * sin,
-                    scaled.X * sin + scaled.Y * cos
-                );
-
-                // Translate
-                return rotated + position;
-            }
-
-            // Draw head
-            float headRadius = 5f * ScaleFactor * scale;
-            Vector2 headCenter = TransformPoint(new Vector2(0, -personHeight + headRadius));
-
-            // Draw body
-            Vector2[] body = new Vector2[]
-            {
-                TransformPoint(new Vector2(0, -personHeight + headRadius * 2)), // Neck
-                TransformPoint(new Vector2(0, -personHeight / 3)), // Bottom of torso
-            };
-
-            // Draw arms
-            Vector2[] leftArm = new Vector2[]
-            {
-                TransformPoint(new Vector2(0, -personHeight + headRadius * 3)), // Shoulder
-                TransformPoint(new Vector2(-personWidth / 2, -personHeight / 2)), // Hand
-            };
-
-            Vector2[] rightArm = new Vector2[]
-            {
-                TransformPoint(new Vector2(0, -personHeight + headRadius * 3)), // Shoulder
-                TransformPoint(new Vector2(personWidth / 2, -personHeight / 2)), // Hand
-            };
-
-            // Draw legs
-            Vector2[] leftLeg = new Vector2[]
-            {
-                TransformPoint(new Vector2(0, -personHeight / 3)), // Hip
-                TransformPoint(new Vector2(-personWidth / 3, 0)), // Foot
-            };
-
-            Vector2[] rightLeg = new Vector2[]
-            {
-                TransformPoint(new Vector2(0, -personHeight / 3)), // Hip
-                TransformPoint(new Vector2(personWidth / 3, 0)), // Foot
-            };
-
-            // Draw the person parts
-            DrawCircle(headCenter, headRadius);
-            Primitif.DrawBresenhamLine(
-                Canvas,
-                body[0],
-                body[1],
-                _personColor,
-                _outlineThickness * ScaleFactor * 0.8f
+            // Apply scale and rotation transformations
+            Canvas.DrawSetTransform(
+                _position + new Vector2(0, floatY),
+                _rotation,
+                new Vector2(_scale, _scale)
             );
-            Primitif.DrawBresenhamLine(
-                Canvas,
-                leftArm[0],
-                leftArm[1],
-                _personColor,
-                _outlineThickness * ScaleFactor * 0.8f
-            );
-            Primitif.DrawBresenhamLine(
-                Canvas,
-                rightArm[0],
-                rightArm[1],
-                _personColor,
-                _outlineThickness * ScaleFactor * 0.8f
-            );
-            Primitif.DrawBresenhamLine(
-                Canvas,
-                leftLeg[0],
-                leftLeg[1],
-                _personColor,
-                _outlineThickness * ScaleFactor * 0.8f
-            );
-            Primitif.DrawBresenhamLine(
-                Canvas,
-                rightLeg[0],
-                rightLeg[1],
-                _personColor,
-                _outlineThickness * ScaleFactor * 0.8f
-            );
-        }
 
-        /// <summary>
-        /// Draws a filled circle.
-        /// </summary>
-        private void DrawCircle(Vector2 center, float radius)
-        {
-            // Draw the filled circle
-            Canvas.DrawCircle(center, radius, _personColor);
+            // Draw the ghost body (tall and thin for Begu Ganjang)
+            float bodyHeight = 80 * ScaleFactor;
+            float bodyWidth = 15 * ScaleFactor;
 
-            // Draw the outline
-            int segments = 16;
-            Vector2[] points = new Vector2[segments];
+            // Head
+            float headRadius = 10 * ScaleFactor;
+            Canvas.DrawCircle(new Vector2(0, -bodyHeight * 0.45f), headRadius, _ghostColor);
 
-            for (int i = 0; i < segments; i++)
+            // Outline for head - using DrawCircle with outline color instead of DrawCircleOutline
+            Canvas.DrawArc(
+                new Vector2(0, -bodyHeight * 0.45f),
+                headRadius + _outlineThickness / 2,
+                0,
+                Mathf.Tau,
+                32,
+                _outlineColor
+            );
+
+            // Eyes (empty and hollow for creepy effect)
+            float eyeRadius = 3 * ScaleFactor;
+            Canvas.DrawCircle(
+                new Vector2(-4 * ScaleFactor, -bodyHeight * 0.45f - 2 * ScaleFactor),
+                eyeRadius,
+                Colors.Black
+            );
+            Canvas.DrawCircle(
+                new Vector2(4 * ScaleFactor, -bodyHeight * 0.45f - 2 * ScaleFactor),
+                eyeRadius,
+                Colors.Black
+            );
+
+            // Body (elongated for Begu Ganjang)
+            Vector2[] bodyPoints = new Vector2[]
             {
-                float angle = i * Mathf.Tau / segments;
-                points[i] = center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
-            }
+                new Vector2(-bodyWidth / 2, -bodyHeight * 0.4f),
+                new Vector2(bodyWidth / 2, -bodyHeight * 0.4f),
+                new Vector2(bodyWidth / 2, bodyHeight * 0.5f),
+                new Vector2(-bodyWidth / 2, bodyHeight * 0.5f),
+            };
+            Canvas.DrawPolygon(
+                bodyPoints,
+                new Color[] { _ghostColor, _ghostColor, _ghostColor, _ghostColor }
+            );
 
-            for (int i = 0; i < segments; i++)
+            // Outline for body - using DrawLines instead of DrawPolygonOutline
+            for (int i = 0; i < bodyPoints.Length; i++)
             {
-                int nextIndex = (i + 1) % segments;
+                int nextIndex = (i + 1) % bodyPoints.Length;
                 Primitif.DrawBresenhamLine(
                     Canvas,
-                    points[i],
-                    points[nextIndex],
+                    bodyPoints[i],
+                    bodyPoints[nextIndex],
                     _outlineColor,
-                    _outlineThickness * ScaleFactor * 0.8f
+                    _outlineThickness
                 );
             }
+
+            // Draw tongue (key feature of Begu Ganjang)
+            float tongueLength = 30 * ScaleFactor * (1 + _tongueExtension);
+            float tongueWidth = 5 * ScaleFactor;
+
+            // Tongue base point is at the bottom of the head
+            Vector2 tongueStart = new Vector2(0, -bodyHeight * 0.4f + 5 * ScaleFactor);
+
+            // Create a wavy tongue effect
+            Vector2[] tonguePoints = new Vector2[6];
+            tonguePoints[0] = tongueStart;
+            tonguePoints[1] = tongueStart + new Vector2(-tongueWidth / 2, tongueLength * 0.2f);
+            tonguePoints[2] = tongueStart + new Vector2(-tongueWidth, tongueLength * 0.5f);
+            tonguePoints[3] = tongueStart + new Vector2(0, tongueLength);
+            tonguePoints[4] = tongueStart + new Vector2(tongueWidth, tongueLength * 0.5f);
+            tonguePoints[5] = tongueStart + new Vector2(tongueWidth / 2, tongueLength * 0.2f);
+
+            // Draw the tongue with a reddish color
+            Color tongueColor = new Color(0.8f, 0.1f, 0.1f);
+            Canvas.DrawPolygon(
+                tonguePoints,
+                new Color[]
+                {
+                    tongueColor,
+                    tongueColor,
+                    tongueColor,
+                    tongueColor,
+                    tongueColor,
+                    tongueColor,
+                }
+            );
+
+            // Outline for tongue - using DrawLines instead of DrawPolygonOutline
+            for (int i = 0; i < tonguePoints.Length; i++)
+            {
+                int nextIndex = (i + 1) % tonguePoints.Length;
+                Primitif.DrawBresenhamLine(
+                    Canvas,
+                    tonguePoints[i],
+                    tonguePoints[nextIndex],
+                    _outlineColor,
+                    _outlineThickness * 0.5f
+                );
+            }
+
+            // Reset transformation
+            Canvas.DrawSetTransform(Vector2.Zero, 0, Vector2.One);
         }
     }
 }
