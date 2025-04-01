@@ -1,0 +1,95 @@
+[gd_scene load_steps=7 format=3 uid="uid://cfss6v3uy85gm"]
+
+[ext_resource type="Script" uid="uid://d2is84fcs876r" path="res://Scripts/UI/Welcome.cs" id="1_mbnmb"]
+[ext_resource type="Shader" uid="uid://bp1d3knpvvesw" path="res://Scenes/Shaders/Background.gdshader" id="2_gh0ka"]
+[ext_resource type="Texture2D" uid="uid://c3ace51xyw3kg" path="res://Assets/Images/Sprites/Pattern.png" id="3_q1w4a"]
+[ext_resource type="Shader" uid="uid://dk3qxakmbhe8e" path="res://Scenes/Shaders/Pattern.gdshader" id="4_4gkh8"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_4k47p"]
+shader = ExtResource("2_gh0ka")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_o45ao"]
+shader = ExtResource("4_4gkh8")
+
+[node name="Welcome" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_mbnmb")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Background" type="TextureRect" parent="MarginContainer"]
+texture_repeat = 2
+material = SubResource("ShaderMaterial_4k47p")
+layout_mode = 2
+texture = ExtResource("3_q1w4a")
+
+[node name="Pattern" type="TextureRect" parent="MarginContainer"]
+texture_repeat = 2
+material = SubResource("ShaderMaterial_o45ao")
+layout_mode = 2
+texture = ExtResource("3_q1w4a")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Hello World"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BtnKarya1" type="Button" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+text = "Karya 1"
+script = ExtResource("1_mbnmb")
+
+[node name="BtnKarya2" type="Button" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+text = "Karya 2"
+
+[node name="BtnKarya3" type="Button" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Karya 3"
+
+[node name="BtnAbout" type="Button" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+text = "About"
+
+[node name="BtnGuide" type="Button" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+text = "Guide"
+
+[node name="BtnExit" type="Button" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+text = "Exit"
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Menu"
+
+[connection signal="pressed" from="MarginContainer/VBoxContainer/BtnKarya1" to="." method="OnBtnKarya1Pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/BtnKarya2" to="." method="OnBtnKarya2Pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/BtnKarya3" to="." method="OnBtnKarya3Pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/BtnAbout" to="." method="OnBtnAboutPressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/BtnGuide" to="." method="OnBtnGuidePressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/BtnExit" to="." method="OnBtnExitPressed"]

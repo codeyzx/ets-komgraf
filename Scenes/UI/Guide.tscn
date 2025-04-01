@@ -1,0 +1,45 @@
+[gd_scene load_steps=2 format=3 uid="uid://b1sl3eabh40cq"]
+
+[ext_resource type="Script" uid="uid://dkxuha8i6omef" path="res://Scripts/UI/Guide.cs" id="1_ehim5"]
+
+[node name="Guide" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(-289, 16)
+script = ExtResource("1_ehim5")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Cara Kerja Karya 2D"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CaraKerja" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "1. Jalankan Aplikasi 
+2. Jalankan Aplikasi
+3. Jalankan Aplikasi
+4. Jalankan Aplikasi
+5. Jalankan Aplikasi"
+horizontal_alignment = 1
+
+[node name="BtnBack" type="Button" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+text = "Back"
+
+[connection signal="pressed" from="MarginContainer/VBoxContainer/BtnBack" to="." method="OnBtnBackPressed"]

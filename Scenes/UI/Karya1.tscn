@@ -1,0 +1,24 @@
+[gd_scene load_steps=3 format=3 uid="uid://bvgwdi5d02qyw"]
+
+[ext_resource type="Script" uid="uid://bxn1v4n1elgju" path="res://Scripts/UI/Karya1.cs" id="1"]
+[ext_resource type="Script" uid="uid://cqe5oayx72tfg" path="res://Scripts/UI/Karya1Button.cs" id="2"]
+
+[node name="Node2D" type="Node2D"]
+script = ExtResource("1")
+
+[node name="Control" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="BtnBack" type="Button" parent="Control"]
+layout_mode = 0
+offset_left = 1.0
+offset_top = -1.0
+offset_right = 46.0
+offset_bottom = 30.0
+text = "Back"
+script = ExtResource("2")
+
+[connection signal="pressed" from="Control/BtnBack" to="Control/BtnBack" method="OnBtnBackPressed"]
