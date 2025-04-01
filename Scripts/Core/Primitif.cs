@@ -4,94 +4,19 @@ using Godot;
 
 namespace Core
 {
+    /// <summary>
+    /// Provides primitive drawing operations with optimized performance.
+    /// </summary>
     public partial class Primitif : RefCounted
     {
-        public List<Vector2> LineBresenham(
-            float x0,
-            float y0,
-            float x1,
-            float y1,
-            float dashLength = 5f,
-            float gapLength = 5f
-        )
-        {
-            List<Vector2> points = new List<Vector2>();
-
-            float dx = Mathf.Abs(x1 - x0);
-            float dy = Mathf.Abs(y1 - y0);
-            float sx = x0 < x1 ? 1 : -1;
-            float sy = y0 < y1 ? 1 : -1;
-            float err = dx - dy;
-
-            float totalLength = 0f;
-            bool draw = true;
-
-            if (dashLength == 5f && gapLength == 5f)
-            {
-                while (true)
-                {
-                    points.Add(new Vector2(x0, y0));
-                    if (x0 == x1 && y0 == y1)
-                        break;
-                    float e2 = 2 * err;
-                    if (e2 > -dy)
-                    {
-                        err -= dy;
-                        x0 += sx;
-                    }
-                    if (e2 < dx)
-                    {
-                        err += dx;
-                        y0 += sy;
-                    }
-                }
-            }
-            else
-            {
-                while (true)
-                {
-                    if (draw)
-                    {
-                        points.Add(new Vector2(x0, y0));
-                    }
-
-                    if (x0 == x1 && y0 == y1)
-                    {
-                        break;
-                    }
-
-                    float e2 = 2 * err;
-                    if (e2 > -dy)
-                    {
-                        err -= dy;
-                        x0 += sx;
-                    }
-                    if (e2 < dx)
-                    {
-                        err += dx;
-                        y0 += sy;
-                    }
-
-                    totalLength += 1f;
-
-                    if (draw && totalLength >= dashLength)
-                    {
-                        draw = false;
-                        totalLength = 0f;
-                    }
-                    else if (!draw && totalLength >= gapLength)
-                    {
-                        draw = true;
-                        totalLength = 0f;
-                    }
-                }
-            }
-            return points;
-        }
-
         /// <summary>
-        /// Ultra-simplified method to draw a line using DrawPrimitive without freezing
+        /// Draws a line using Bresenham's algorithm with DrawPrimitive for optimal performance.
         /// </summary>
+        /// <param name="canvas">The canvas item to draw on.</param>
+        /// <param name="from">Starting point of the line.</param>
+        /// <param name="to">Ending point of the line.</param>
+        /// <param name="color">Color of the line.</param>
+        /// <param name="thickness">Thickness of the line in pixels.</param>
         public void DrawBresenhamLine(
             CanvasItem canvas,
             Vector2 from,
@@ -100,6 +25,8 @@ namespace Core
             float thickness = 1f
         )
         {
+            ArgumentNullException.ThrowIfNull(canvas);
+
             // For zero or negative thickness, don't draw anything
             if (thickness <= 0)
                 return;
@@ -107,19 +34,38 @@ namespace Core
             // For very thin lines, use the simple approach
             if (thickness <= 1f)
             {
-                Vector2[] points = new Vector2[2];
-                points[0] = from;
-                points[1] = to;
-
-                canvas.DrawPrimitive(
-                    points,
-                    new Color[] { color, color },
-                    new Vector2[] { Vector2.Zero, Vector2.One }
-                );
+                DrawThinLine(canvas, from, to, color);
                 return;
             }
 
             // For thicker lines, create a quad (rectangle) with the desired thickness
+            DrawThickLine(canvas, from, to, color, thickness);
+        }
+
+        /// <summary>
+        /// Draws a thin line (thickness <= 1) using a simple two-point primitive.
+        /// </summary>
+        private void DrawThinLine(CanvasItem canvas, Vector2 from, Vector2 to, Color color)
+        {
+            Vector2[] points = new Vector2[] { from, to };
+            canvas.DrawPrimitive(
+                points,
+                new Color[] { color, color },
+                new Vector2[] { Vector2.Zero, Vector2.One }
+            );
+        }
+
+        /// <summary>
+        /// Draws a thick line as a filled quad with the specified thickness.
+        /// </summary>
+        private void DrawThickLine(
+            CanvasItem canvas,
+            Vector2 from,
+            Vector2 to,
+            Color color,
+            float thickness
+        )
+        {
             Vector2 direction = (to - from).Normalized();
             Vector2 perpendicular = new Vector2(-direction.Y, direction.X) * (thickness / 2f);
 
@@ -145,8 +91,13 @@ namespace Core
         }
 
         /// <summary>
-        /// Ultra-simplified method to draw polygon outlines without freezing
+        /// Draws polygon outlines using Bresenham's algorithm for each edge.
         /// </summary>
+        /// <param name="canvas">The canvas item to draw on.</param>
+        /// <param name="points">Array of points defining the polygon vertices.</param>
+        /// <param name="color">Color of the outline.</param>
+        /// <param name="thickness">Thickness of the outline in pixels.</param>
+        /// <param name="closed">Whether to close the polygon by connecting the last point to the first.</param>
         public void DrawBresenhamLinePoints(
             CanvasItem canvas,
             Vector2[] points,
@@ -155,10 +106,13 @@ namespace Core
             bool closed = true
         )
         {
-            int count = points.Length;
-            if (count < 2)
+            ArgumentNullException.ThrowIfNull(canvas);
+            ArgumentNullException.ThrowIfNull(points);
+
+            if (points.Length < 2)
                 return;
 
+            int count = points.Length;
             int limit = closed ? count : count - 1;
 
             // Draw each segment with minimal operations
