@@ -42,6 +42,15 @@ namespace Drawing
         private List<Vector2> _fogParticles = new List<Vector2>();
         private const int FOG_PARTICLE_COUNT = 50;
 
+        // Ladder animation
+        private bool _isLadderAnimating = false;
+        private float _ladderOpenAmount = 0f;
+        private float _ladderOpenSpeed = 1.0f;
+
+        // Rolling head animation
+        private bool _rollingHeadStarted = false;
+        private PersonComponent _rollingHead;
+
         // People animation
         private List<PersonComponent> _people = new List<PersonComponent>();
         private const int PEOPLE_COUNT = 5;
@@ -182,32 +191,65 @@ namespace Drawing
                 startY + _config.LadderLength * _scaleFactor * 1.5f
             );
 
-            // Create Begu Ganjang ghosts starting from inside the house
+            // Create a rolling head component
+            _rollingHead = new PersonComponent(
+                _canvas,
+                _primitif,
+                _dimensions,
+                _scaleFactor,
+                new Color(0.8f, 0.7f, 0.7f, 1.0f), // Pale flesh color
+                _config.OutlineColor,
+                _config.OutlineThickness,
+                ladderStart // Initial position (will be updated when animation starts)
+            );
+
+            // Create giant, terrifying humanoid figures around the house
             for (int i = 0; i < PEOPLE_COUNT; i++)
             {
-                // Start position inside the house (random positions for more horror effect)
+                // Start positions around the house perimeter for more threatening appearance
+                // Some will be behind, some to the sides, creating a surrounded feeling
+                float angle = i * (Mathf.Tau / PEOPLE_COUNT);
+                float distance = 300 * _scaleFactor + _random.Next(0, 100) * _scaleFactor;
+
                 Vector2 startPosition = new Vector2(
-                    _dimensions.HousePosition.X
-                        + _dimensions.HouseWidth / 2
-                        - i * 20 * _scaleFactor
-                        + (float)_random.NextDouble() * 30 * _scaleFactor
-                        - 15 * _scaleFactor,
-                    _dimensions.RoofBaseY + _dimensions.WallHeight / 2
+                    _dimensions.Center.X + (float)Math.Cos(angle) * distance,
+                    _dimensions.Center.Y + (float)Math.Sin(angle) * distance
                 );
 
-                // Create ghost component with pale white color
-                PersonComponent ghost = new PersonComponent(
+                // Create giant humanoid component with blood-red or dark color variations
+                Color primaryColor;
+
+                // Alternate between dark and blood colors for variety
+                if (i % 2 == 0)
+                {
+                    // Blood red for some giants
+                    primaryColor = new Color(0.7f, 0.1f, 0.1f, 0.9f);
+                }
+                else
+                {
+                    // Dark shadowy color for others
+                    primaryColor = new Color(0.1f, 0.1f, 0.15f, 0.9f);
+                }
+
+                PersonComponent giant = new PersonComponent(
                     _canvas,
                     _primitif,
                     _dimensions,
                     _scaleFactor,
-                    new Color(0.9f, 0.9f, 0.95f, 0.8f), // Ghost color (pale white with transparency)
+                    primaryColor,
                     _config.OutlineColor,
                     _config.OutlineThickness,
                     startPosition
                 );
 
-                _people.Add(ghost);
+                // Set initial scale based on position - further ones appear larger for depth effect
+                float initialScale = 1.0f + (float)_random.NextDouble() * 0.5f;
+                giant.SetTargetScale(initialScale);
+
+                // Set initial rotation for variety
+                giant.SetTargetRotation((float)_random.NextDouble() * 0.2f - 0.1f);
+
+                _people.Add(giant);
             }
         }
 
@@ -246,7 +288,7 @@ namespace Drawing
                 };
 
                 Color overlayColor = new Color(0.05f, 0.05f, 0.1f, 0.3f + _flickerEffect);
-                _canvas.DrawPolygon(overlay, new Color[] { overlayColor });
+                _canvas.DrawPolygon(overlay, new Color[] { overlayColor, overlayColor, overlayColor, overlayColor });
             }
 
             // Draw main components
@@ -255,16 +297,47 @@ namespace Drawing
             _centralStructureComponent.Draw();
             _stairsComponent.Draw();
 
-            // Draw ladder only if it's visible in the animation
+            // Draw ladder with animation if it's visible
             if (_showLadder)
             {
-                _ladderComponent.Draw();
+                // Apply transformation for ladder animation
+                if (_isLadderAnimating)
+                {
+                    float rightEdgeX = _dimensions.HousePosition.X + _dimensions.HouseWidth - 20 * _scaleFactor;
+                    float startY = _dimensions.RoofBaseY + _dimensions.WallHeight * _scaleFactor;
+
+                    // Calculate ladder pivot point (top of ladder)
+                    Vector2 ladderPivot = new Vector2(rightEdgeX - 30 * _scaleFactor, startY);
+
+                    // Apply rotation transformation for ladder opening animation
+                    _canvas.DrawSetTransform(
+                        ladderPivot,
+                        _ladderOpenAmount * Mathf.Pi / 2, // Rotate from 0 to 90 degrees
+                        Vector2.One
+                    );
+
+                    // Draw the ladder at the origin (pivot point)
+                    _ladderComponent.Draw();
+
+                    // Reset transformation
+                    _canvas.DrawSetTransform(Vector2.Zero, 0, Vector2.One);
+                }
+                else
+                {
+                    _ladderComponent.Draw();
+                }
             }
 
-            // Draw Begu Ganjang ghosts
-            foreach (var ghost in _people)
+            // Draw rolling head if animation is active
+            if (_rollingHeadStarted)
             {
-                ghost.Draw();
+                _rollingHead.DrawRollingHead();
+            }
+
+            // Draw giant humanoid figures
+            foreach (var giant in _people)
+            {
+                giant.Draw();
             }
         }
 
@@ -308,56 +381,116 @@ namespace Drawing
                 _fogParticles[i] = particle;
             }
 
+            // Update all giants' animations
+            foreach (var person in _people)
+            {
+                person.UpdateAnimation(delta, _animationSpeed);
+            }
+
+            // Update rolling head animation if active
+            if (_rollingHeadStarted)
+            {
+                _rollingHead.UpdateAnimation(delta, _animationSpeed);
+            }
+
+            // Update ladder animation if active
+            if (_isLadderAnimating)
+            {
+                _ladderOpenAmount += _ladderOpenSpeed * delta;
+                if (_ladderOpenAmount >= 1.0f)
+                {
+                    _ladderOpenAmount = 1.0f;
+                    _isLadderAnimating = false;
+
+                    // Start rolling head animation when ladder is fully open
+                    if (!_rollingHeadStarted)
+                    {
+                        _rollingHeadStarted = true;
+
+                        // Calculate start and target positions for rolling head
+                        float rightEdgeX = _dimensions.HousePosition.X + _dimensions.HouseWidth - 20 * _scaleFactor;
+                        float startY = _dimensions.RoofBaseY + _dimensions.WallHeight * _scaleFactor;
+                        Vector2 startPosition = new Vector2(rightEdgeX - 30 * _scaleFactor, startY);
+                        float targetX = _dimensions.HousePosition.X + _dimensions.HouseWidth + 100 * _scaleFactor;
+
+                        // Start the rolling head animation
+                        _rollingHead.StartRollingHeadAnimation(startPosition, targetX);
+                    }
+                }
+            }
+
             // Update animation based on current stage
             switch (_animationStage)
             {
                 case 0: // Eerie silence, then ladder appears
-                    if (_animationTime >= 2.0f)
+                    if (_animationTime >= 1.0f)
                     {
+                        // Show the ladder
                         _showLadder = true;
-                        _animationStage = 1;
-                        _animationTime = 0f;
-                    }
-                    break;
 
-                case 1: // First ghost appears and moves to ladder
-                    if (_animationTime >= 1.0f && _people.Count > 0)
-                    {
-                        _people[0].SetVisible(true);
+                        // Start ladder opening animation
+                        _isLadderAnimating = true;
+                        _ladderOpenAmount = 0f;
 
-                        // Move to ladder
-                        float rightEdgeX =
-                            _dimensions.HousePosition.X
-                            + _dimensions.HouseWidth
-                            - 20 * _scaleFactor;
-                        float startY =
-                            _dimensions.RoofBaseY + _dimensions.WallHeight * _scaleFactor;
-                        Vector2 ladderTop = new Vector2(rightEdgeX - 30 * _scaleFactor, startY);
-                        _people[0].SetTargetPosition(ladderTop);
-
-                        if (_animationTime >= 3.0f)
+                        if (_animationTime >= 2.0f)
                         {
-                            _animationStage = 2;
+                            _animationStage = 1;
                             _animationTime = 0f;
                         }
                     }
                     break;
 
-                case 2: // First ghost climbs down ladder
-                    if (_animationTime >= 0.5f && _people.Count > 0)
+                case 1: // Wait for rolling head animation to complete, then start showing giants
+                    // Check if rolling head animation has started but is no longer active (completed)
+                    if (_rollingHeadStarted && !_rollingHead.IsRollingHeadActive())
                     {
-                        // Move down the ladder
-                        float rightEdgeX =
-                            _dimensions.HousePosition.X
-                            + _dimensions.HouseWidth
-                            - 20 * _scaleFactor;
-                        float startY =
-                            _dimensions.RoofBaseY + _dimensions.WallHeight * _scaleFactor;
-                        Vector2 ladderBottom = new Vector2(
-                            rightEdgeX + _config.LadderLength * _scaleFactor,
-                            startY + _config.LadderLength * _scaleFactor * 1.5f
-                        );
-                        _people[0].SetTargetPosition(ladderBottom);
+                        // Make all giants visible immediately after jump scare
+                        foreach (var giant in _people)
+                        {
+                            giant.SetVisible(true);
+                        }
+
+                        // Position giants around the house
+                        for (int i = 0; i < _people.Count; i++)
+                        {
+                            float angle = i * (Mathf.Tau / _people.Count);
+                            float distance = 200 * _scaleFactor;
+
+                            Vector2 targetPos = new Vector2(
+                                _dimensions.Center.X + (float)Math.Cos(angle) * distance,
+                                _dimensions.Center.Y + (float)Math.Sin(angle) * distance * 0.5f
+                            );
+
+                            _people[i].SetTargetPosition(targetPos);
+                        }
+
+                        _animationStage = 6; // Skip directly to the stage where giants close in
+                        _animationTime = 0f;
+                    }
+                    // If rolling head animation hasn't started yet, wait a bit longer
+                    else if (_animationTime >= 5.0f)
+                    {
+                        // Fallback in case rolling head animation doesn't complete
+                        _animationStage = 2;
+                        _animationTime = 0f;
+                    }
+                    break;
+
+                case 2: // More giants appear and begin to move toward the house (fallback path)
+                    if (_people.Count > 1 && _animationTime >= 1.0f)
+                    {
+                        // Make second giant visible
+                        _people[1].SetVisible(true);
+
+                        // Move first giant closer to the house
+                        if (_people.Count > 0)
+                        {
+                            Vector2 targetPos = new Vector2(
+                                _dimensions.Center.X - 100 * _scaleFactor,
+                                _dimensions.RoofBaseY + _dimensions.WallHeight * 1.5f
+                            );
+                            _people[0].SetTargetPosition(targetPos);
+                        }
 
                         if (_animationTime >= 2.0f)
                         {
@@ -367,22 +500,21 @@ namespace Drawing
                     }
                     break;
 
-                case 3: // First ghost moves to position, second ghost appears
-                    if (_animationTime >= 0.5f && _people.Count > 1)
+                case 3: // Third giant appears, others continue moving
+                    if (_people.Count > 2 && _animationTime >= 1.0f)
                     {
-                        // Move first ghost to final position
-                        Vector2 finalPosition = new Vector2(
-                            _dimensions.HousePosition.X
-                                + _dimensions.HouseWidth
-                                + 70 * _scaleFactor,
-                            _dimensions.RoofBaseY
-                                + _dimensions.WallHeight * _scaleFactor
-                                + _config.LadderLength * _scaleFactor * 1.5f
-                        );
-                        _people[0].SetTargetPosition(finalPosition);
+                        // Make third giant visible
+                        _people[2].SetVisible(true);
 
-                        // Show second ghost
-                        _people[1].SetVisible(true);
+                        // Move second giant closer to the house from another direction
+                        if (_people.Count > 1)
+                        {
+                            Vector2 targetPos = new Vector2(
+                                _dimensions.Center.X + 120 * _scaleFactor,
+                                _dimensions.RoofBaseY + _dimensions.WallHeight * 1.2f
+                            );
+                            _people[1].SetTargetPosition(targetPos);
+                        }
 
                         if (_animationTime >= 2.0f)
                         {
@@ -392,18 +524,21 @@ namespace Drawing
                     }
                     break;
 
-                case 4: // Second ghost moves to ladder
-                    if (_animationTime >= 0.5f && _people.Count > 1)
+                case 4: // Fourth giant appears, others continue surrounding the house
+                    if (_people.Count > 3 && _animationTime >= 1.0f)
                     {
-                        // Move to ladder
-                        float rightEdgeX =
-                            _dimensions.HousePosition.X
-                            + _dimensions.HouseWidth
-                            - 20 * _scaleFactor;
-                        float startY =
-                            _dimensions.RoofBaseY + _dimensions.WallHeight * _scaleFactor;
-                        Vector2 ladderTop = new Vector2(rightEdgeX - 30 * _scaleFactor, startY);
-                        _people[1].SetTargetPosition(ladderTop);
+                        // Make fourth giant visible
+                        _people[3].SetVisible(true);
+
+                        // Move third giant to position
+                        if (_people.Count > 2)
+                        {
+                            Vector2 targetPos = new Vector2(
+                                _dimensions.Center.X - 50 * _scaleFactor,
+                                _dimensions.RoofBaseY - 100 * _scaleFactor
+                            );
+                            _people[2].SetTargetPosition(targetPos);
+                        }
 
                         if (_animationTime >= 2.0f)
                         {
@@ -413,21 +548,21 @@ namespace Drawing
                     }
                     break;
 
-                case 5: // Second ghost climbs down ladder
-                    if (_animationTime >= 0.5f && _people.Count > 1)
+                case 5: // Final giant appears, all giants now surround the house
+                    if (_people.Count > 4 && _animationTime >= 1.0f)
                     {
-                        // Move down the ladder
-                        float rightEdgeX =
-                            _dimensions.HousePosition.X
-                            + _dimensions.HouseWidth
-                            - 20 * _scaleFactor;
-                        float startY =
-                            _dimensions.RoofBaseY + _dimensions.WallHeight * _scaleFactor;
-                        Vector2 ladderBottom = new Vector2(
-                            rightEdgeX + _config.LadderLength * _scaleFactor,
-                            startY + _config.LadderLength * _scaleFactor * 1.5f
-                        );
-                        _people[1].SetTargetPosition(ladderBottom);
+                        // Make final giant visible
+                        _people[4].SetVisible(true);
+
+                        // Move fourth giant to position
+                        if (_people.Count > 3)
+                        {
+                            Vector2 targetPos = new Vector2(
+                                _dimensions.Center.X + 80 * _scaleFactor,
+                                _dimensions.RoofBaseY - 50 * _scaleFactor
+                            );
+                            _people[3].SetTargetPosition(targetPos);
+                        }
 
                         if (_animationTime >= 2.0f)
                         {
@@ -437,24 +572,25 @@ namespace Drawing
                     }
                     break;
 
-                case 6: // Second ghost moves to position, third ghost appears
-                    if (_animationTime >= 0.5f && _people.Count > 2)
+                case 6: // All giants now begin to close in on the house
                     {
-                        // Move second ghost to final position
-                        Vector2 finalPosition = new Vector2(
-                            _dimensions.HousePosition.X
-                                + _dimensions.HouseWidth
-                                + 120 * _scaleFactor,
-                            _dimensions.RoofBaseY
-                                + _dimensions.WallHeight * _scaleFactor
-                                + _config.LadderLength * _scaleFactor * 1.5f
-                        );
-                        _people[1].SetTargetPosition(finalPosition);
+                        // Move all giants closer to the house in a threatening manner
+                        for (int i = 0; i < _people.Count; i++)
+                        {
+                            // Calculate position closer to the house
+                            float angle = i * (Mathf.Tau / _people.Count);
+                            float distance = 150 * _scaleFactor * (1.0f - _animationTime * 0.1f);
+                            distance = Math.Max(distance, 100 * _scaleFactor); // Don't get too close
 
-                        // Show third ghost
-                        _people[2].SetVisible(true);
+                            Vector2 targetPos = new Vector2(
+                                _dimensions.Center.X + (float)Math.Cos(angle) * distance,
+                                _dimensions.Center.Y + (float)Math.Sin(angle) * distance * 0.5f
+                            );
 
-                        if (_animationTime >= 2.0f)
+                            _people[i].SetTargetPosition(targetPos);
+                        }
+
+                        if (_animationTime >= 3.0f)
                         {
                             _animationStage = 7;
                             _animationTime = 0f;
@@ -462,244 +598,21 @@ namespace Drawing
                     }
                     break;
 
-                // Continue with similar patterns for remaining ghosts
-                case 7: // Repeat for third ghost
-                    if (_animationTime >= 0.5f && _people.Count > 2)
+                case 7: // Final horror sequence - giants reach toward the house
                     {
-                        // Move to ladder
-                        float rightEdgeX =
-                            _dimensions.HousePosition.X
-                            + _dimensions.HouseWidth
-                            - 20 * _scaleFactor;
-                        float startY =
-                            _dimensions.RoofBaseY + _dimensions.WallHeight * _scaleFactor;
-                        Vector2 ladderTop = new Vector2(rightEdgeX - 30 * _scaleFactor, startY);
-                        _people[2].SetTargetPosition(ladderTop);
-
-                        if (_animationTime >= 2.0f)
+                        // Make giants perform threatening movements
+                        for (int i = 0; i < _people.Count; i++)
                         {
-                            _animationStage = 8;
-                            _animationTime = 0f;
+                            // Alternate scaling up and down for breathing effect
+                            float scaleOffset = (float)Math.Sin(_animationTime * 2 + i) * 0.1f + 1.0f;
+                            _people[i].SetTargetScale(scaleOffset);
+
+                            // Slight rotation for swaying effect
+                            float rotationOffset = (float)Math.Sin(_animationTime * 1.5f + i * 0.5f) * 0.15f;
+                            _people[i].SetTargetRotation(rotationOffset);
                         }
                     }
                     break;
-
-                case 8: // Third ghost climbs down
-                    if (_animationTime >= 0.5f && _people.Count > 2)
-                    {
-                        // Move down the ladder
-                        float rightEdgeX =
-                            _dimensions.HousePosition.X
-                            + _dimensions.HouseWidth
-                            - 20 * _scaleFactor;
-                        float startY =
-                            _dimensions.RoofBaseY + _dimensions.WallHeight * _scaleFactor;
-                        Vector2 ladderBottom = new Vector2(
-                            rightEdgeX + _config.LadderLength * _scaleFactor,
-                            startY + _config.LadderLength * _scaleFactor * 1.5f
-                        );
-                        _people[2].SetTargetPosition(ladderBottom);
-
-                        if (_animationTime >= 2.0f)
-                        {
-                            _animationStage = 9;
-                            _animationTime = 0f;
-                        }
-                    }
-                    break;
-
-                case 9: // Third ghost moves to position, fourth ghost appears
-                    if (_animationTime >= 0.5f && _people.Count > 3)
-                    {
-                        // Move third ghost to final position
-                        Vector2 finalPosition = new Vector2(
-                            _dimensions.HousePosition.X
-                                + _dimensions.HouseWidth
-                                + 170 * _scaleFactor,
-                            _dimensions.RoofBaseY
-                                + _dimensions.WallHeight * _scaleFactor
-                                + _config.LadderLength * _scaleFactor * 1.5f
-                        );
-                        _people[2].SetTargetPosition(finalPosition);
-
-                        // Show fourth ghost
-                        _people[3].SetVisible(true);
-
-                        if (_animationTime >= 2.0f)
-                        {
-                            _animationStage = 10;
-                            _animationTime = 0f;
-                        }
-                    }
-                    break;
-
-                // Continue with similar patterns for remaining ghosts
-                case 10: // Repeat for fourth ghost
-                    if (_animationTime >= 0.5f && _people.Count > 3)
-                    {
-                        // Move to ladder
-                        float rightEdgeX =
-                            _dimensions.HousePosition.X
-                            + _dimensions.HouseWidth
-                            - 20 * _scaleFactor;
-                        float startY =
-                            _dimensions.RoofBaseY + _dimensions.WallHeight * _scaleFactor;
-                        Vector2 ladderTop = new Vector2(rightEdgeX - 30 * _scaleFactor, startY);
-                        _people[3].SetTargetPosition(ladderTop);
-
-                        if (_animationTime >= 2.0f)
-                        {
-                            _animationStage = 11;
-                            _animationTime = 0f;
-                        }
-                    }
-                    break;
-
-                case 11: // Fourth ghost climbs down
-                    if (_animationTime >= 0.5f && _people.Count > 3)
-                    {
-                        // Move down the ladder
-                        float rightEdgeX =
-                            _dimensions.HousePosition.X
-                            + _dimensions.HouseWidth
-                            - 20 * _scaleFactor;
-                        float startY =
-                            _dimensions.RoofBaseY + _dimensions.WallHeight * _scaleFactor;
-                        Vector2 ladderBottom = new Vector2(
-                            rightEdgeX + _config.LadderLength * _scaleFactor,
-                            startY + _config.LadderLength * _scaleFactor * 1.5f
-                        );
-                        _people[3].SetTargetPosition(ladderBottom);
-
-                        if (_animationTime >= 2.0f)
-                        {
-                            _animationStage = 12;
-                            _animationTime = 0f;
-                        }
-                    }
-                    break;
-
-                case 12: // Fourth ghost moves to position, fifth ghost appears
-                    if (_animationTime >= 0.5f && _people.Count > 4)
-                    {
-                        // Move fourth ghost to final position
-                        Vector2 finalPosition = new Vector2(
-                            _dimensions.HousePosition.X
-                                + _dimensions.HouseWidth
-                                + 220 * _scaleFactor,
-                            _dimensions.RoofBaseY
-                                + _dimensions.WallHeight * _scaleFactor
-                                + _config.LadderLength * _scaleFactor * 1.5f
-                        );
-                        _people[3].SetTargetPosition(finalPosition);
-
-                        // Show fifth ghost
-                        _people[4].SetVisible(true);
-
-                        if (_animationTime >= 2.0f)
-                        {
-                            _animationStage = 13;
-                            _animationTime = 0f;
-                        }
-                    }
-                    break;
-
-                case 13: // Fifth ghost moves to ladder
-                    if (_animationTime >= 0.5f && _people.Count > 4)
-                    {
-                        // Move to ladder
-                        float rightEdgeX =
-                            _dimensions.HousePosition.X
-                            + _dimensions.HouseWidth
-                            - 20 * _scaleFactor;
-                        float startY =
-                            _dimensions.RoofBaseY + _dimensions.WallHeight * _scaleFactor;
-                        Vector2 ladderTop = new Vector2(rightEdgeX - 30 * _scaleFactor, startY);
-                        _people[4].SetTargetPosition(ladderTop);
-
-                        if (_animationTime >= 2.0f)
-                        {
-                            _animationStage = 14;
-                            _animationTime = 0f;
-                        }
-                    }
-                    break;
-
-                case 14: // Fifth ghost climbs down ladder
-                    if (_animationTime >= 0.5f && _people.Count > 4)
-                    {
-                        // Move down the ladder
-                        float rightEdgeX =
-                            _dimensions.HousePosition.X
-                            + _dimensions.HouseWidth
-                            - 20 * _scaleFactor;
-                        float startY =
-                            _dimensions.RoofBaseY + _dimensions.WallHeight * _scaleFactor;
-                        Vector2 ladderBottom = new Vector2(
-                            rightEdgeX + _config.LadderLength * _scaleFactor,
-                            startY + _config.LadderLength * _scaleFactor * 1.5f
-                        );
-                        _people[4].SetTargetPosition(ladderBottom);
-
-                        if (_animationTime >= 2.0f)
-                        {
-                            _animationStage = 15;
-                            _animationTime = 0f;
-                        }
-                    }
-                    break;
-
-                case 15: // Fifth ghost moves to position, all ghosts in line
-                    if (_animationTime >= 0.5f && _people.Count > 4)
-                    {
-                        // Move fifth ghost to final position
-                        Vector2 finalPosition = new Vector2(
-                            _dimensions.HousePosition.X
-                                + _dimensions.HouseWidth
-                                + 270 * _scaleFactor,
-                            _dimensions.RoofBaseY
-                                + _dimensions.WallHeight * _scaleFactor
-                                + _config.LadderLength * _scaleFactor * 1.5f
-                        );
-                        _people[4].SetTargetPosition(finalPosition);
-
-                        if (_animationTime >= 2.0f)
-                        {
-                            _animationStage = 16;
-                            _animationTime = 0f;
-                        }
-                    }
-                    break;
-
-                case 16: // Final formation - ghosts start moving in a creepy way
-                    for (int i = 0; i < _people.Count; i++)
-                    {
-                        // Apply rotation based on rotation speed
-                        _people[i]
-                            .SetTargetRotation(
-                                (float)Math.Sin(_animationTime * _rotationSpeed + i) * 0.3f
-                            );
-
-                        // Apply scale based on scale speed (pulsating effect)
-                        float scale =
-                            1.0f + (float)Math.Sin(_animationTime * _scaleSpeed + i * 0.5f) * 0.3f;
-                        _people[i].SetTargetScale(scale);
-
-                        // Make ghosts move slightly in formation for creepy effect
-                        Vector2 currentPos = _people[i].GetPosition();
-                        Vector2 newPos = new Vector2(
-                            currentPos.X + (float)Math.Sin(_animationTime * 2f + i * 0.7f) * 2f,
-                            currentPos.Y + (float)Math.Cos(_animationTime * 1.5f + i * 0.5f) * 3f
-                        );
-                        _people[i].SetTargetPosition(newPos);
-                    }
-                    break;
-            }
-
-            // Update each ghost's animation
-            foreach (var ghost in _people)
-            {
-                ghost.UpdateAnimation(delta, _animationSpeed);
             }
         }
 
@@ -712,11 +625,14 @@ namespace Drawing
             _animationStage = 0;
             _animationTime = 0f;
             _showLadder = false;
+            _isLadderAnimating = false;
+            _ladderOpenAmount = 0f;
+            _rollingHeadStarted = false;
 
-            // Reset ghosts
-            foreach (var ghost in _people)
+            // Reset giants
+            foreach (var giant in _people)
             {
-                ghost.SetVisible(false);
+                giant.SetVisible(false);
             }
         }
 

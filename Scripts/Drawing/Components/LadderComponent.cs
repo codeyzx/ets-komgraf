@@ -27,7 +27,9 @@ namespace Drawing.Components
             Color outlineColor,
             float outlineThickness,
             float ladderWidth,
-            float ladderLength) : base(canvas, primitif, dimensions, scaleFactor)
+            float ladderLength
+        )
+            : base(canvas, primitif, dimensions, scaleFactor)
         {
             _secondaryColor = secondaryColor;
             _outlineColor = outlineColor;
@@ -70,7 +72,11 @@ namespace Drawing.Components
             };
 
             Canvas.DrawPolygon(ladderPolygon.ToArray(), new Color[] { _secondaryColor });
-            DrawOutline(ladderPolygon.ToArray(), _outlineThickness * ScaleFactor * 0.5f, _outlineColor);
+            DrawOutline(
+                ladderPolygon.ToArray(),
+                _outlineThickness * ScaleFactor * 0.5f,
+                _outlineColor
+            );
         }
     }
 }

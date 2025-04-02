@@ -2,6 +2,7 @@ using System;
 using Core;
 using Drawing;
 using Godot;
+using Karya3.Scripts.UI;
 
 namespace UI
 {
@@ -36,6 +37,9 @@ namespace UI
         private Timer _flickerTimer;
         private Random _random = new Random();
 
+        // Show Begu Ganjang intro scene first
+        private BeguGanjangIntroScene _introScene;
+
         /// <summary>
         /// Called when the node enters the scene tree for the first time.
         /// </summary>
@@ -43,6 +47,25 @@ namespace UI
         {
             base._Ready();
 
+            // Create and show the intro scene
+            _introScene = new BeguGanjangIntroScene();
+            AddChild(_introScene);
+
+            // Connect to the intro scene's completion signal
+            _introScene.TreeExiting += OnIntroCompleted;
+        }
+
+        private void OnIntroCompleted()
+        {
+            // Remove the intro scene
+            _introScene.QueueFree();
+
+            // Start the main game content
+            InitializeMainGame();
+        }
+
+        private void InitializeMainGame()
+        {
             // Initialize building renderer
             _buildingRenderer = new BuildingRenderer(this, _config);
 
