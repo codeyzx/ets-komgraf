@@ -25,6 +25,11 @@ namespace UI
             NavigateToScene("res://Scenes/UI/Karya3.tscn");
         }
 
+        private void OnBtnKarya4Pressed()
+        {
+            NavigateToScene("res://Scenes/UI/Karya4.tscn");
+        }
+
         private void OnBtnAboutPressed()
         {
             NavigateToScene("res://Scenes/UI/About.tscn");

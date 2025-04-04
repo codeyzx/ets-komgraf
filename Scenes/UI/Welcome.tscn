@@ -65,6 +65,11 @@ layout_mode = 2
 size_flags_horizontal = 4
 text = "Karya 3"
 
+[node name="BtnKarya4" type="Button" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Karya 4"
+
 [node name="BtnAbout" type="Button" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 4
@@ -90,6 +95,7 @@ text = "Menu"
 [connection signal="pressed" from="MarginContainer/VBoxContainer/BtnKarya1" to="." method="OnBtnKarya1Pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/BtnKarya2" to="." method="OnBtnKarya2Pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/BtnKarya3" to="." method="OnBtnKarya3Pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/BtnKarya4" to="." method="OnBtnKarya4Pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/BtnAbout" to="." method="OnBtnAboutPressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/BtnGuide" to="." method="OnBtnGuidePressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/BtnExit" to="." method="OnBtnExitPressed"]
