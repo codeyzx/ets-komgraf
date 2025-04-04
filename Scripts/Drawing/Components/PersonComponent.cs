@@ -10,6 +10,7 @@ namespace Drawing.Components
     /// </summary>
     public class PersonComponent : BuildingComponent
     {
+        #region Core Properties
         private readonly Color _primaryColor;
         private readonly Color _outlineColor;
         private readonly float _outlineThickness;
@@ -21,20 +22,15 @@ namespace Drawing.Components
         private float _scale = 1f;
         private float _targetScale = 1f;
         private bool _isVisible = false;
+        private Random _random = new Random();
+        #endregion
 
-        // Animation parameters
+        #region Animation Parameters
         private float _moveSpeed = 100f;
         private float _rotationSpeed = 2f;
         private float _scaleSpeed = 1f;
 
-        // Body proportions
-        private float _bodyHeight;
-        private float _bodyWidth;
-        private float _headSize;
-        private float _armLength;
-        private float _legLength;
-
-        // Horror animation effects
+        // Floating animation
         private float _floatTime = 0f;
         private float _floatAmplitude = 5f;
         private float _floatSpeed = 1f;
@@ -43,36 +39,16 @@ namespace Drawing.Components
         private float _fingerWiggleTime = 0f;
         private float _fingerWiggleSpeed = 3f;
 
-        // Detached head effect - Enhanced
-        private float _headDetachAmount = 0f;
-        private float _headDetachDirection = 1f;
-        private float _headDetachSpeed = 0.8f;
-        private float _headRotationAmount = 0f;
-        private float _headRotationSpeed = 2.0f;
-        private bool _isHeadDetached = false;
-        private float _headDetachTimer = 0f;
-        private float _headDetachDuration = 5.0f; // Longer duration for more impact
-        private float _headHoverDistance = 0f;
-        private float _headHoverSpeed = 1.5f;
-        private float _headTiltAmount = 0f;
-        private float _headTiltDirection = 1f;
-        private float _headTiltSpeed = 0.5f;
-        private float _detachProbability = 0.05f; // Probability of head detachment happening randomly
-
         // Blood drip effect
         private float _bloodDripTime = 0f;
         private float _bloodDripSpeed = 0.7f;
-        private Random _random = new Random();
-
-        // Ghost spreading effect
-        private float _ghostSpreadFactor = 150f; // Increased distance between ghosts
-        private bool _useRandomSpawning = true; // Enable random spawn positions
-        private float _verticalSpreadVariance = 100f; // Variance in vertical positioning
 
         // Flickering effect
         private float _flickerTime = 0f;
         private float _flickerSpeed = 15f;
         private float _flickerIntensity = 0.4f;
+
+        // 180-degree flip effect
         private bool _isVisible180Flip = false;
         private float _180FlipTimer = 0f;
         private float _180FlipInterval = 3.0f;
@@ -83,7 +59,26 @@ namespace Drawing.Components
         private float _maxDistortion = 10f;
         private float _distortionDirection = 1f;
 
-        // Rolling head animation
+        // Head animation
+        private float _headHoverDistance = 0f;
+        private float _headTiltAmount = 0f;
+        #endregion
+
+        #region Body Proportions
+        private float _bodyHeight;
+        private float _bodyWidth;
+        private float _headSize;
+        private float _armLength;
+        private float _legLength;
+        #endregion
+
+        #region Spawning Parameters
+        private float _ghostSpreadFactor = 150f;
+        private bool _useRandomSpawning = true;
+        private float _verticalSpreadVariance = 100f;
+        #endregion
+
+        #region Rolling Head Animation
         private bool _isRollingHeadActive = false;
         private Vector2 _rollingHeadPosition;
         private float _rollingHeadRotation = 0f;
@@ -92,6 +87,7 @@ namespace Drawing.Components
         private float _rollingHeadTargetX;
         private bool _isRollingHeadZooming = false;
         private float _rollingHeadZoomSpeed = 5f;
+        #endregion
 
         /// <summary>
         /// Initializes a new instance of the PersonComponent class.
@@ -135,13 +131,11 @@ namespace Drawing.Components
             _armLength = 120f * scaleFactor;
             _legLength = 100f * scaleFactor;
 
-            // Randomize head detach timer
-            _headDetachTimer = (float)_random.NextDouble() * _headDetachDuration;
-
             // Randomize 180 flip timer
             _180FlipTimer = (float)_random.NextDouble() * _180FlipInterval;
         }
 
+        #region Position and Animation Control
         /// <summary>
         /// Gets the current position of the person.
         /// </summary>
@@ -194,108 +188,73 @@ namespace Drawing.Components
         {
             _targetScale = scale;
         }
+        #endregion
 
+        #region Animation Updates
         /// <summary>
         /// Updates the animation with the specified delta time and speed.
         /// </summary>
         public void UpdateAnimation(float delta, float speedMultiplier = 1.0f)
         {
-            // Update position
+            UpdatePosition(delta, speedMultiplier);
+            UpdateRotation(delta, speedMultiplier);
+            UpdateScale(delta, speedMultiplier);
+            UpdateEffects(delta, speedMultiplier);
+            UpdateRollingHead(delta, speedMultiplier);
+        }
+
+        /// <summary>
+        /// Updates the position animation.
+        /// </summary>
+        private void UpdatePosition(float delta, float speedMultiplier)
+        {
             Vector2 direction = _targetPosition - _position;
             if (direction.Length() > 1f)
             {
                 _position += direction.Normalized() * _moveSpeed * delta * speedMultiplier;
             }
+        }
 
-            // Update rotation
+        /// <summary>
+        /// Updates the rotation animation.
+        /// </summary>
+        private void UpdateRotation(float delta, float speedMultiplier)
+        {
             float rotationDiff = _targetRotation - _rotation;
             if (Math.Abs(rotationDiff) > 0.01f)
             {
                 _rotation += rotationDiff * _rotationSpeed * delta * speedMultiplier;
             }
+        }
 
-            // Update scale
+        /// <summary>
+        /// Updates the scale animation.
+        /// </summary>
+        private void UpdateScale(float delta, float speedMultiplier)
+        {
             float scaleDiff = _targetScale - _scale;
             if (Math.Abs(scaleDiff) > 0.01f)
             {
                 _scale += scaleDiff * _scaleSpeed * delta * speedMultiplier;
             }
+        }
 
+        /// <summary>
+        /// Updates various horror effects.
+        /// </summary>
+        private void UpdateEffects(float delta, float speedMultiplier)
+        {
             // Update floating animation
             _floatTime += _floatSpeed * delta * speedMultiplier;
 
             // Update finger wiggle animation
             _fingerWiggleTime += _fingerWiggleSpeed * delta * speedMultiplier;
 
-            // Update head tilt animation (creepy head movement)
-            _headTiltAmount += _headTiltDirection * _headTiltSpeed * delta * speedMultiplier;
-            if (Math.Abs(_headTiltAmount) > 0.3f)
-            {
-                _headTiltDirection *= -1;
-            }
-
             // Update distortion effect
             _distortionAmount += _distortionDirection * _distortionSpeed * delta * speedMultiplier;
             if (Math.Abs(_distortionAmount) > _maxDistortion)
             {
                 _distortionDirection *= -1;
-            }
-
-            // Update head detach animation - Enhanced for more horror
-            _headDetachAmount += _headDetachDirection * _headDetachSpeed * delta * speedMultiplier;
-
-            // Update head detach timer and randomly trigger head detachment effect
-            _headDetachTimer += delta;
-            if (_headDetachTimer > _headDetachDuration)
-            {
-                _headDetachTimer = 0f;
-
-                // Random chance to detach head
-                if (_random.NextDouble() < _detachProbability || _isHeadDetached)
-                {
-                    _isHeadDetached = !_isHeadDetached;
-
-                    // Reset detach amount when reattaching
-                    if (!_isHeadDetached)
-                    {
-                        _headDetachAmount = 0f;
-                        _headRotationAmount = 0f;
-                    }
-                }
-            }
-
-            // More dramatic head movement when detached
-            if (_isHeadDetached)
-            {
-                // Make head rotate erratically
-                _headRotationAmount +=
-                    ((float)_random.NextDouble() * 2 - 1) * _headRotationSpeed * delta;
-
-                // Make head hover/float around
-                _headHoverDistance += _headHoverSpeed * delta;
-
-                // Limit detach amount for detached head
-                if (_headDetachAmount > 40f) // Increased for more dramatic effect
-                {
-                    _headDetachDirection = -1f;
-                }
-                else if (_headDetachAmount < 15f)
-                {
-                    _headDetachDirection = 1f;
-                }
-            }
-            else
-            {
-                // Subtle neck stretching even when attached
-                if (_headDetachAmount > 15f)
-                {
-                    _headDetachDirection = -1f;
-                }
-                else if (_headDetachAmount < 0f)
-                {
-                    _headDetachAmount = 0f;
-                    _headDetachDirection = 1f;
-                }
             }
 
             // Update blood drip animation
@@ -317,39 +276,46 @@ namespace Drawing.Components
                     _rotation += Mathf.Pi;
                 }
             }
+        }
 
-            // Update rolling head animation if active
-            if (_isRollingHeadActive)
+        /// <summary>
+        /// Updates the rolling head animation if active.
+        /// </summary>
+        private void UpdateRollingHead(float delta, float speedMultiplier)
+        {
+            if (!_isRollingHeadActive)
+                return;
+
+            if (!_isRollingHeadZooming)
             {
-                if (!_isRollingHeadZooming)
-                {
-                    // Roll the head
-                    _rollingHeadPosition.X += _rollingHeadSpeed * delta * speedMultiplier;
-                    _rollingHeadRotation += 5f * delta * speedMultiplier;
+                // Roll the head
+                _rollingHeadPosition.X += _rollingHeadSpeed * delta * speedMultiplier;
+                _rollingHeadRotation += 5f * delta * speedMultiplier;
 
-                    // Check if head reached target position
-                    if (_rollingHeadPosition.X >= _rollingHeadTargetX)
-                    {
-                        _isRollingHeadZooming = true;
-                        // Use center of the screen instead of dimensions
-                        Vector2 viewportSize = Canvas.GetViewportRect().Size;
-                        _rollingHeadPosition = viewportSize / 2;
-                    }
+                // Check if head reached target position
+                if (_rollingHeadPosition.X >= _rollingHeadTargetX)
+                {
+                    _isRollingHeadZooming = true;
+                    // Use center of the screen instead of dimensions
+                    Vector2 viewportSize = Canvas.GetViewportRect().Size;
+                    _rollingHeadPosition = viewportSize / 2;
                 }
-                else
-                {
-                    // Zoom the head
-                    _rollingHeadScale += _rollingHeadZoomSpeed * delta * speedMultiplier;
+            }
+            else
+            {
+                // Zoom the head
+                _rollingHeadScale += _rollingHeadZoomSpeed * delta * speedMultiplier;
 
-                    // If head is too big, stop the animation
-                    if (_rollingHeadScale > 10f)
-                    {
-                        _isRollingHeadActive = false;
-                    }
+                // If head is too big, stop the animation
+                if (_rollingHeadScale > 10f)
+                {
+                    _isRollingHeadActive = false;
                 }
             }
         }
+        #endregion
 
+        #region Drawing
         /// <summary>
         /// Draws the person component.
         /// </summary>
@@ -397,58 +363,12 @@ namespace Drawing.Components
         /// </summary>
         private void DrawGiantHumanoid()
         {
-            // Calculate neck connection point for detached head
-            Vector2 neckTop = new Vector2(0, -_bodyHeight * 0.8f);
-
-            // Draw proper human-like head (circular, not vertical lines)
-            if (_isHeadDetached)
-            {
-                // Draw neck stump with blood when head is detached
-                DrawNeckStump(neckTop);
-
-                // Draw detached head floating above
-                DrawHead(
-                    neckTop - new Vector2(0, _headDetachAmount),
-                    _headSize,
-                    _headTiltAmount + _headRotationAmount
-                );
-            }
-            else
-            {
-                // Draw attached head with subtle movements
-                DrawHead(
-                    neckTop - new Vector2(0, _headDetachAmount * 0.5f),
-                    _headSize,
-                    _headTiltAmount
-                );
-            }
+            // Draw proper human-like head
+            Vector2 headPosition = new Vector2(0, -_bodyHeight * 0.9f);
+            DrawHead(headPosition, _headSize);
 
             // Draw torso (elongated for more menacing appearance)
-            Vector2[] torsoPoints = new Vector2[]
-            {
-                new Vector2(-_bodyWidth / 2, -_bodyHeight * 0.8f),
-                new Vector2(_bodyWidth / 2, -_bodyHeight * 0.8f),
-                new Vector2(_bodyWidth / 2 * 0.8f, 0),
-                new Vector2(-_bodyWidth / 2 * 0.8f, 0),
-            };
-
-            Canvas.DrawPolygon(
-                torsoPoints,
-                new Color[] { _primaryColor, _primaryColor, _primaryColor, _primaryColor }
-            );
-
-            // Draw torso outline
-            for (int i = 0; i < torsoPoints.Length; i++)
-            {
-                int nextIndex = (i + 1) % torsoPoints.Length;
-                Primitif.DrawBresenhamLine(
-                    Canvas,
-                    torsoPoints[i],
-                    torsoPoints[nextIndex],
-                    _outlineColor,
-                    _outlineThickness
-                );
-            }
+            DrawTorso();
 
             // Draw arms (extra long and menacing)
             DrawArm(true); // Left arm
@@ -465,137 +385,47 @@ namespace Drawing.Components
         /// <summary>
         /// Draws a proper human-like head with improved horror effects.
         /// </summary>
-        private void DrawHead(Vector2 position, float size, float tilt)
+        private void DrawHead(Vector2 position, float size)
         {
-            // Calculate hover offset for detached head
-            Vector2 hoverOffset = Vector2.Zero;
-            if (_isHeadDetached)
-            {
-                hoverOffset = new Vector2(
-                    (float)Math.Sin(_headHoverDistance * 1.7f) * 12f, // Increased movement
-                    (float)Math.Cos(_headHoverDistance) * 8f // Increased movement
-                );
-            }
-
-            // Apply transformation for head with tilt and detachment
-            Canvas.DrawSetTransform(position + hoverOffset, tilt, Vector2.One);
-
             // Draw the head as a proper circle (human-like)
-            Canvas.DrawCircle(Vector2.Zero, size, _primaryColor);
+            Canvas.DrawCircle(position, size, _primaryColor);
 
             // Draw head outline for better definition
-            Canvas.DrawArc(Vector2.Zero, size, 0, Mathf.Tau, 32, _outlineColor, _outlineThickness);
+            Canvas.DrawArc(position, size, 0, Mathf.Tau, 32, _outlineColor, _outlineThickness);
 
             // Draw creepy eyes (large, hollow)
             float eyeSize = size * 0.25f;
             float eyeSpacing = size * 0.4f;
 
             // Add distortion to eyes for more horror
-            float eyeDistortion = _isHeadDetached
-                ? (float)Math.Sin(_headHoverDistance * 2) * size * 0.1f
-                : 0f;
+            float eyeDistortion = (float)Math.Sin(_headHoverDistance * 2) * size * 0.1f;
 
             // Left eye - hollow black with blood
             Canvas.DrawCircle(
-                new Vector2(-eyeSpacing, -size * 0.1f + eyeDistortion),
+                position + new Vector2(-eyeSpacing, -size * 0.1f + eyeDistortion),
                 eyeSize,
                 Colors.Black
             );
             Canvas.DrawCircle(
-                new Vector2(-eyeSpacing, -size * 0.1f + eyeDistortion),
+                position + new Vector2(-eyeSpacing, -size * 0.1f + eyeDistortion),
                 eyeSize * 0.2f,
                 new Color(0.8f, 0, 0)
             );
 
             // Right eye - hollow black with blood
             Canvas.DrawCircle(
-                new Vector2(eyeSpacing, -size * 0.1f - eyeDistortion),
+                position + new Vector2(eyeSpacing, -size * 0.1f - eyeDistortion),
                 eyeSize,
                 Colors.Black
             );
             Canvas.DrawCircle(
-                new Vector2(eyeSpacing, -size * 0.1f - eyeDistortion),
+                position + new Vector2(eyeSpacing, -size * 0.1f - eyeDistortion),
                 eyeSize * 0.2f,
                 new Color(0.8f, 0, 0)
             );
 
             // Draw creepy smile (jagged)
-            DrawCreepyMouth(new Vector2(0, size * 0.3f), size * 0.7f);
-
-            // Reset transform after drawing head
-            Canvas.DrawSetTransform(_position, _rotation, new Vector2(_scale, _scale));
-        }
-
-        /// <summary>
-        /// Draws a neck stump with blood when head is detached.
-        /// </summary>
-        private void DrawNeckStump(Vector2 position)
-        {
-            float neckRadius = _headSize * 0.4f;
-
-            // Draw neck stump
-            Canvas.DrawCircle(position, neckRadius, new Color(0.7f, 0.1f, 0.1f));
-
-            // Draw flesh bits and bone
-            for (int i = 0; i < 8; i++)
-            {
-                float angle = i * Mathf.Tau / 8 + _bloodDripTime * 0.2f; // Added subtle animation
-                float fleshLength = neckRadius * (0.5f + (float)_random.NextDouble() * 0.5f);
-
-                Vector2 fleshStart =
-                    position
-                    + new Vector2(
-                        (float)Math.Cos(angle) * neckRadius * 0.8f,
-                        (float)Math.Sin(angle) * neckRadius * 0.8f
-                    );
-
-                Vector2 fleshEnd =
-                    position
-                    + new Vector2(
-                        (float)Math.Cos(angle) * (neckRadius + fleshLength),
-                        (float)Math.Sin(angle) * (neckRadius + fleshLength)
-                    );
-
-                Color fleshColor =
-                    i % 2 == 0
-                        ? new Color(0.7f, 0.1f, 0.1f) // Blood red
-                        : new Color(0.9f, 0.9f, 0.8f); // Bone white
-
-                Primitif.DrawBresenhamLine(
-                    Canvas,
-                    fleshStart,
-                    fleshEnd,
-                    fleshColor,
-                    _outlineThickness * (0.5f + (float)_random.NextDouble() * 0.5f)
-                );
-            }
-
-            // Draw blood drips from neck
-            for (int i = 0; i < 5; i++)
-            {
-                float angle = i * Mathf.Tau / 5 + _bloodDripTime;
-                float dripLength = _headSize * (0.5f + (float)Math.Sin(_bloodDripTime + i) * 0.3f);
-
-                if (angle > 0 && angle < Math.PI) // Only drip downward
-                {
-                    Vector2 dripStart =
-                        position
-                        + new Vector2(
-                            (float)Math.Cos(angle) * neckRadius,
-                            (float)Math.Sin(angle) * neckRadius
-                        );
-
-                    Vector2 dripEnd = dripStart + new Vector2(0, dripLength);
-
-                    Primitif.DrawBresenhamLine(
-                        Canvas,
-                        dripStart,
-                        dripEnd,
-                        new Color(0.8f, 0.1f, 0.1f),
-                        _outlineThickness * (0.5f + (float)_random.NextDouble() * 0.5f)
-                    );
-                }
-            }
+            DrawCreepyMouth(position + new Vector2(0, size * 0.3f), size * 0.7f);
         }
 
         /// <summary>
@@ -806,62 +636,7 @@ namespace Drawing.Components
             }
 
             // Draw blood on hands
-            DrawBloodOnHands();
-        }
-
-        /// <summary>
-        /// Draws blood stains on hands for horror effect.
-        /// </summary>
-        private void DrawBloodOnHands()
-        {
-            // Blood color
-            Color bloodColor = new Color(0.7f, 0, 0);
-
-            // Left hand position
-            Vector2 leftHandPos = new Vector2(
-                -_bodyWidth / 2 - _armLength,
-                -_bodyHeight * 0.7f + _armLength
-            );
-
-            // Right hand position
-            Vector2 rightHandPos = new Vector2(
-                _bodyWidth / 2 + _armLength,
-                -_bodyHeight * 0.7f + _armLength
-            );
-
-            // Draw blood splatters on hands
-            DrawBloodSplatter(leftHandPos, _bodyWidth * 0.8f, bloodColor);
-            DrawBloodSplatter(rightHandPos, _bodyWidth * 0.8f, bloodColor);
-        }
-
-        /// <summary>
-        /// Draws a blood splatter effect.
-        /// </summary>
-        private void DrawBloodSplatter(Vector2 center, float radius, Color bloodColor)
-        {
-            int splatterCount = 5;
-            float angleStep = (float)Math.PI * 2 / splatterCount;
-
-            for (int i = 0; i < splatterCount; i++)
-            {
-                float angle = i * angleStep;
-                float distance = (float)Math.Sin(_bloodDripTime + i) * radius;
-                Vector2 splatterPos =
-                    center
-                    + new Vector2(
-                        (float)Math.Cos(angle) * distance,
-                        (float)Math.Sin(angle) * distance
-                    );
-
-                // Draw blood splatter
-                Primitif.DrawBresenhamLine(
-                    Canvas,
-                    splatterPos,
-                    splatterPos + new Vector2(0, _outlineThickness * 1.5f),
-                    bloodColor,
-                    _outlineThickness
-                );
-            }
+            // DrawBloodOnHands();
         }
 
         /// <summary>
@@ -1000,5 +775,39 @@ namespace Drawing.Components
             // Reset transformation
             Canvas.DrawSetTransform(Vector2.Zero, 0, Vector2.One);
         }
+
+        /// <summary>
+        /// Draws the torso of the humanoid figure.
+        /// </summary>
+        private void DrawTorso()
+        {
+            // Draw torso (elongated for more menacing appearance)
+            Vector2[] torsoPoints = new Vector2[]
+            {
+                new Vector2(-_bodyWidth / 2, -_bodyHeight * 0.8f),
+                new Vector2(_bodyWidth / 2, -_bodyHeight * 0.8f),
+                new Vector2(_bodyWidth / 2 * 0.8f, 0),
+                new Vector2(-_bodyWidth / 2 * 0.8f, 0),
+            };
+
+            Canvas.DrawPolygon(
+                torsoPoints,
+                new Color[] { _primaryColor, _primaryColor, _primaryColor, _primaryColor }
+            );
+
+            // Draw torso outline
+            for (int i = 0; i < torsoPoints.Length; i++)
+            {
+                int nextIndex = (i + 1) % torsoPoints.Length;
+                Primitif.DrawBresenhamLine(
+                    Canvas,
+                    torsoPoints[i],
+                    torsoPoints[nextIndex],
+                    _outlineColor,
+                    _outlineThickness
+                );
+            }
+        }
+        #endregion
     }
 }

@@ -223,8 +223,8 @@ namespace Drawing
                 switch (i % 4)
                 {
                     case 0:
-                        // Blood red
-                        primaryColor = new Color(0.7f, 0.1f, 0.1f, 0.9f);
+                        // White
+                        primaryColor = new Color(1f, 1f, 1f, 0.9f);
                         break;
                     case 1:
                         // Dark shadowy
@@ -297,7 +297,10 @@ namespace Drawing
                 };
 
                 Color overlayColor = new Color(0.05f, 0.05f, 0.1f, 0.3f + _flickerEffect);
-                _canvas.DrawPolygon(overlay, new Color[] { overlayColor, overlayColor, overlayColor, overlayColor });
+                _canvas.DrawPolygon(
+                    overlay,
+                    new Color[] { overlayColor, overlayColor, overlayColor, overlayColor }
+                );
             }
 
             // Draw main components
@@ -312,7 +315,8 @@ namespace Drawing
                 // Apply transformation for ladder animation
                 if (_isLadderAnimating)
                 {
-                    float rightEdgeX = _dimensions.HousePosition.X + _dimensions.HouseWidth - 20 * _scaleFactor;
+                    float rightEdgeX =
+                        _dimensions.HousePosition.X + _dimensions.HouseWidth - 20 * _scaleFactor;
                     float startY = _dimensions.RoofBaseY + _dimensions.WallHeight * _scaleFactor;
 
                     // Calculate ladder pivot point (top of ladder)
@@ -417,10 +421,17 @@ namespace Drawing
                         _rollingHeadStarted = true;
 
                         // Calculate start and target positions for rolling head
-                        float rightEdgeX = _dimensions.HousePosition.X + _dimensions.HouseWidth - 20 * _scaleFactor;
-                        float startY = _dimensions.RoofBaseY + _dimensions.WallHeight * _scaleFactor;
+                        float rightEdgeX =
+                            _dimensions.HousePosition.X
+                            + _dimensions.HouseWidth
+                            - 20 * _scaleFactor;
+                        float startY =
+                            _dimensions.RoofBaseY + _dimensions.WallHeight * _scaleFactor;
                         Vector2 startPosition = new Vector2(rightEdgeX - 30 * _scaleFactor, startY);
-                        float targetX = _dimensions.HousePosition.X + _dimensions.HouseWidth + 100 * _scaleFactor;
+                        float targetX =
+                            _dimensions.HousePosition.X
+                            + _dimensions.HouseWidth
+                            + 100 * _scaleFactor;
 
                         // Start the rolling head animation
                         _rollingHead.StartRollingHeadAnimation(startPosition, targetX);
@@ -613,11 +624,13 @@ namespace Drawing
                         for (int i = 0; i < _people.Count; i++)
                         {
                             // Alternate scaling up and down for breathing effect
-                            float scaleOffset = (float)Math.Sin(_animationTime * 2 + i) * 0.1f + 1.0f;
+                            float scaleOffset =
+                                (float)Math.Sin(_animationTime * 2 + i) * 0.1f + 1.0f;
                             _people[i].SetTargetScale(scaleOffset);
 
                             // Slight rotation for swaying effect
-                            float rotationOffset = (float)Math.Sin(_animationTime * 1.5f + i * 0.5f) * 0.15f;
+                            float rotationOffset =
+                                (float)Math.Sin(_animationTime * 1.5f + i * 0.5f) * 0.15f;
                             _people[i].SetTargetRotation(rotationOffset);
                         }
                     }
