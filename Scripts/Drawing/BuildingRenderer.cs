@@ -91,18 +91,20 @@ namespace Drawing
             _fogParticles.Clear();
             _fogParticleTypes.Clear();
             _fogParticleRotations.Clear();
-            
+
             for (int i = 0; i < FOG_PARTICLE_COUNT; i++)
             {
                 // Spread particles across the entire viewport
-                _fogParticles.Add(new Vector2(
-                    _random.Next(0, (int)viewportSize.X),
-                    _random.Next(0, (int)viewportSize.Y)
-                ));
-                
+                _fogParticles.Add(
+                    new Vector2(
+                        _random.Next(0, (int)viewportSize.X),
+                        _random.Next(0, (int)viewportSize.Y)
+                    )
+                );
+
                 // Assign random shape type (0-5)
                 _fogParticleTypes.Add(_random.Next(0, 6));
-                
+
                 // Assign random rotation
                 _fogParticleRotations.Add((float)_random.NextDouble() * Mathf.Pi * 2);
             }
@@ -325,73 +327,112 @@ namespace Drawing
                     float rotation = _fogParticleRotations[index];
                     float size = (float)(_random.NextDouble() * 8 + 5) * _scaleFactor;
                     Color fogColor = new Color(0.9f, 0.9f, 0.95f, 0.15f);
-                    
+
                     // Apply transformation for rotation
                     _canvas.DrawSetTransform(particle, rotation, Vector2.One);
-                    
+
                     // Draw different scary shapes based on particleType
                     switch (particleType)
                     {
                         case 0: // Skull-like shape
                             _canvas.DrawCircle(Vector2.Zero, size, fogColor);
-                            _canvas.DrawCircle(new Vector2(-size/3, -size/3), size/3, fogColor);
-                            _canvas.DrawCircle(new Vector2(size/3, -size/3), size/3, fogColor);
-                            _canvas.DrawRect(new Rect2(-size/2, 0, size, size/3), fogColor);
+                            _canvas.DrawCircle(
+                                new Vector2(-size / 3, -size / 3),
+                                size / 3,
+                                fogColor
+                            );
+                            _canvas.DrawCircle(
+                                new Vector2(size / 3, -size / 3),
+                                size / 3,
+                                fogColor
+                            );
+                            _canvas.DrawRect(new Rect2(-size / 2, 0, size, size / 3), fogColor);
                             break;
-                            
+
                         case 1: // Ghost-like shape
-                            Vector2[] ghostPoints = new Vector2[]{
+                            Vector2[] ghostPoints = new Vector2[]
+                            {
                                 new Vector2(0, -size),
-                                new Vector2(size, -size/2),
-                                new Vector2(size, size/2),
-                                new Vector2(size/2, size),
-                                new Vector2(0, size/2),
-                                new Vector2(-size/2, size),
-                                new Vector2(-size, size/2),
-                                new Vector2(-size, -size/2),
+                                new Vector2(size, -size / 2),
+                                new Vector2(size, size / 2),
+                                new Vector2(size / 2, size),
+                                new Vector2(0, size / 2),
+                                new Vector2(-size / 2, size),
+                                new Vector2(-size, size / 2),
+                                new Vector2(-size, -size / 2),
                             };
-                            _canvas.DrawPolygon(ghostPoints, new Color[]{fogColor, fogColor, fogColor, fogColor, fogColor, fogColor, fogColor, fogColor});
+                            _canvas.DrawPolygon(
+                                ghostPoints,
+                                new Color[]
+                                {
+                                    fogColor,
+                                    fogColor,
+                                    fogColor,
+                                    fogColor,
+                                    fogColor,
+                                    fogColor,
+                                    fogColor,
+                                    fogColor,
+                                }
+                            );
                             break;
-                            
+
                         case 2: // Wispy tendril
                             for (int i = 0; i < 5; i++)
                             {
-                                float offset = i * size/4;
-                                _canvas.DrawCircle(new Vector2(offset, 0), size/2 - i*size/10, fogColor);
-                            }
-                            break;
-                            
-                        case 3: // Distorted face
-                            _canvas.DrawCircle(Vector2.Zero, size, fogColor);
-                            _canvas.DrawCircle(new Vector2(-size/3, -size/4), size/5, new Color(0, 0, 0, 0.2f));
-                            _canvas.DrawCircle(new Vector2(size/3, -size/4), size/5, new Color(0, 0, 0, 0.2f));
-                            _canvas.DrawLine(new Vector2(-size/2, size/3), new Vector2(size/2, size/3), new Color(0, 0, 0, 0.2f), size/10);
-                            break;
-                            
-                        case 4: // Creepy hand
-                            _canvas.DrawCircle(Vector2.Zero, size/2, fogColor);
-                            for (int i = 0; i < 5; i++)
-                            {
-                                float angle = (i - 2) * Mathf.Pi/8;
-                                _canvas.DrawLine(
-                                    Vector2.Zero, 
-                                    new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * size, 
-                                    fogColor, 
-                                    size/5
+                                float offset = i * size / 4;
+                                _canvas.DrawCircle(
+                                    new Vector2(offset, 0),
+                                    size / 2 - i * size / 10,
+                                    fogColor
                                 );
                             }
                             break;
-                            
+
+                        case 3: // Distorted face
+                            _canvas.DrawCircle(Vector2.Zero, size, fogColor);
+                            _canvas.DrawCircle(
+                                new Vector2(-size / 3, -size / 4),
+                                size / 5,
+                                new Color(0, 0, 0, 0.2f)
+                            );
+                            _canvas.DrawCircle(
+                                new Vector2(size / 3, -size / 4),
+                                size / 5,
+                                new Color(0, 0, 0, 0.2f)
+                            );
+                            _canvas.DrawLine(
+                                new Vector2(-size / 2, size / 3),
+                                new Vector2(size / 2, size / 3),
+                                new Color(0, 0, 0, 0.2f),
+                                size / 10
+                            );
+                            break;
+
+                        case 4: // Creepy hand
+                            _canvas.DrawCircle(Vector2.Zero, size / 2, fogColor);
+                            for (int i = 0; i < 5; i++)
+                            {
+                                float angle = (i - 2) * Mathf.Pi / 8;
+                                _canvas.DrawLine(
+                                    Vector2.Zero,
+                                    new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * size,
+                                    fogColor,
+                                    size / 5
+                                );
+                            }
+                            break;
+
                         case 5: // Mist cloud
                         default:
                             _canvas.DrawCircle(Vector2.Zero, size, fogColor);
-                            _canvas.DrawCircle(new Vector2(size/2, 0), size*0.7f, fogColor);
-                            _canvas.DrawCircle(new Vector2(-size/2, 0), size*0.7f, fogColor);
-                            _canvas.DrawCircle(new Vector2(0, size/2), size*0.7f, fogColor);
-                            _canvas.DrawCircle(new Vector2(0, -size/2), size*0.7f, fogColor);
+                            _canvas.DrawCircle(new Vector2(size / 2, 0), size * 0.7f, fogColor);
+                            _canvas.DrawCircle(new Vector2(-size / 2, 0), size * 0.7f, fogColor);
+                            _canvas.DrawCircle(new Vector2(0, size / 2), size * 0.7f, fogColor);
+                            _canvas.DrawCircle(new Vector2(0, -size / 2), size * 0.7f, fogColor);
                             break;
                     }
-                    
+
                     // Reset transformation
                     _canvas.DrawSetTransform(Vector2.Zero, 0, Vector2.One);
                 }
@@ -489,10 +530,10 @@ namespace Drawing
 
                 // Reset particles that move off screen
                 if (
-                    particle.Y < 0 || 
-                    particle.Y > _canvas.GetViewportRect().Size.Y ||
-                    particle.X < 0 || 
-                    particle.X > _canvas.GetViewportRect().Size.X
+                    particle.Y < 0
+                    || particle.Y > _canvas.GetViewportRect().Size.Y
+                    || particle.X < 0
+                    || particle.X > _canvas.GetViewportRect().Size.X
                 )
                 {
                     // Respawn at a random edge of the screen
@@ -524,10 +565,10 @@ namespace Drawing
                             );
                             break;
                     }
-                    
+
                     // Assign a new random shape
                     _fogParticleTypes[i] = _random.Next(0, 6);
-                    
+
                     // Reset rotation
                     _fogParticleRotations[i] = (float)_random.NextDouble() * Mathf.Pi * 2;
                 }
@@ -637,7 +678,9 @@ namespace Drawing
                                 case 2: // Far Top (now positioned lower)
                                     targetPos = new Vector2(
                                         _dimensions.Center.X,
-                                        _dimensions.RoofBaseY + _dimensions.WallHeight + baseDistance * 0.3f // Moved lower
+                                        _dimensions.RoofBaseY
+                                            + _dimensions.WallHeight
+                                            + baseDistance * 0.3f // Moved lower
                                     );
                                     break;
                                 case 3: // Far Bottom
@@ -800,7 +843,9 @@ namespace Drawing
                                 case 2: // Top (now positioned lower)
                                     targetPos = new Vector2(
                                         _dimensions.Center.X,
-                                        _dimensions.RoofBaseY + _dimensions.WallHeight + baseDistance * 0.2f // Moved lower
+                                        _dimensions.RoofBaseY
+                                            + _dimensions.WallHeight
+                                            + baseDistance * 0.2f // Moved lower
                                     );
                                     break;
                                 case 3: // Bottom
@@ -895,6 +940,15 @@ namespace Drawing
         public void SetScaleSpeed(float speed)
         {
             _scaleSpeed = speed;
+        }
+
+        /// <summary>
+        /// Shows or hides the ladder on the right side of the building.
+        /// </summary>
+        /// <param name="show">Whether to show the ladder.</param>
+        public void ShowLadder(bool show)
+        {
+            _showLadder = show;
         }
     }
 }

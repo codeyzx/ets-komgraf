@@ -137,6 +137,9 @@ namespace UI
             // Initialize the building renderer
             _buildingRenderer = new BuildingRenderer(this, _config);
 
+            // Enable the ladder on the right side of the building
+            _buildingRenderer.ShowLadder(true);
+
             // Force a redraw to render the building
             QueueRedraw();
         }
