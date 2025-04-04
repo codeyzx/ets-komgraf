@@ -76,13 +76,13 @@ namespace Drawing.Renderers
             float bottomLeftX = topLeftX + (topWidth - bottomWidth) / 2;
             float extendedWallHeight = _dimensions.WallHeight + 11;
 
-            Vector2[] mainWall = new Vector2[]
-            {
+            Vector2[] mainWall =
+            [
                 new Vector2(topLeftX, _dimensions.RoofBaseY),
                 new Vector2(topLeftX + topWidth, _dimensions.RoofBaseY),
                 new Vector2(bottomLeftX + bottomWidth, _dimensions.RoofBaseY + extendedWallHeight),
                 new Vector2(bottomLeftX, _dimensions.RoofBaseY + extendedWallHeight),
-            };
+            ];
 
             // Draw the outline using primitives
             _primitif.DrawBresenhamLinePoints(_canvas, mainWall, Colors.Black, 2f * _scaleFactor);
@@ -94,8 +94,8 @@ namespace Drawing.Renderers
             float bgBottomLeftX = bgTopLeftX + (bgTopWidth - bgBottomWidth) / 2;
             float bgExtendedWallHeight = _dimensions.WallHeight + 3;
 
-            Vector2[] bgWall = new Vector2[]
-            {
+            Vector2[] bgWall =
+            [
                 new Vector2(bgTopLeftX, _dimensions.RoofBaseY),
                 new Vector2(bgTopLeftX + bgTopWidth, _dimensions.RoofBaseY),
                 new Vector2(
@@ -103,7 +103,7 @@ namespace Drawing.Renderers
                     _dimensions.RoofBaseY + bgExtendedWallHeight
                 ),
                 new Vector2(bgBottomLeftX, _dimensions.RoofBaseY + bgExtendedWallHeight),
-            };
+            ];
 
             // Draw the background outline
             _primitif.DrawBresenhamLinePoints(_canvas, bgWall, Colors.Black, 1.5f * _scaleFactor);
@@ -167,8 +167,8 @@ namespace Drawing.Renderers
             float centerHeight = 10 * _scaleFactor;
             float margin = 25 * _scaleFactor;
 
-            Vector2[] centerStructure = new Vector2[]
-            {
+            Vector2[] centerStructure =
+            [
                 new Vector2(
                     dimensions.HousePosition.X + margin,
                     dimensions.RoofBaseY + dimensions.WallHeight
@@ -185,7 +185,7 @@ namespace Drawing.Renderers
                     dimensions.HousePosition.X + margin,
                     dimensions.RoofBaseY + dimensions.WallHeight + centerHeight
                 ),
-            };
+            ];
 
             // Draw the central structure outline
             _primitif.DrawBresenhamLinePoints(
@@ -220,8 +220,8 @@ namespace Drawing.Renderers
             {
                 float xPos = dimensions.HousePosition.X + margin + i * columnSpacing;
 
-                Vector2[] column = new Vector2[]
-                {
+                Vector2[] column =
+                [
                     new Vector2(
                         xPos - columnWidth / 2,
                         centerHeight + dimensions.RoofBaseY + dimensions.WallHeight
@@ -244,7 +244,7 @@ namespace Drawing.Renderers
                             + dimensions.WallHeight
                             + _config.StairHeight * _scaleFactor
                     ),
-                };
+                ];
 
                 // Draw column outline
                 _primitif.DrawBresenhamLinePoints(_canvas, column, Colors.Black, _scaleFactor);
@@ -296,13 +296,13 @@ namespace Drawing.Renderers
             float margin
         )
         {
-            return new Vector2[]
-            {
+            return
+            [
                 new Vector2(center.X - width / 2 * _scaleFactor + margin, yPosition),
                 new Vector2(center.X - width / 2 * _scaleFactor + width + 5, yPosition),
                 new Vector2(center.X - width / 2 * _scaleFactor + width + 5, yPosition + height),
                 new Vector2(center.X - width / 2 * _scaleFactor + margin, yPosition + height),
-            };
+            ];
         }
 
         /// <summary>

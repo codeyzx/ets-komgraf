@@ -71,8 +71,8 @@ namespace Drawing.Components.Structures
             {
                 float xPos = dimensions.HousePosition.X + margin + i * columnSpacing;
 
-                Vector2[] column = new Vector2[]
-                {
+                Vector2[] column =
+                [
                     new Vector2(
                         xPos - columnWidth / 2,
                         centerHeight + dimensions.RoofBaseY + dimensions.WallHeight
@@ -95,9 +95,9 @@ namespace Drawing.Components.Structures
                             + dimensions.WallHeight
                             + _stairHeight * ScaleFactor
                     ),
-                };
+                ];
 
-                Canvas.DrawPolygon(column, new Color[] { _primaryColor });
+                Canvas.DrawPolygon(column, [_primaryColor]);
                 DrawOutline(column, ScaleFactor, _outlineColor);
             }
         }
@@ -125,7 +125,7 @@ namespace Drawing.Components.Structures
                 margin
             );
 
-            Canvas.DrawPolygon(upperBeam, new Color[] { _primaryColor });
+            Canvas.DrawPolygon(upperBeam, [_primaryColor]);
             DrawOutline(upperBeam, ScaleFactor, _outlineColor);
 
             // Lower beam
@@ -137,7 +137,7 @@ namespace Drawing.Components.Structures
                 margin
             );
 
-            Canvas.DrawPolygon(lowerBeam, new Color[] { _primaryColor });
+            Canvas.DrawPolygon(lowerBeam, [_primaryColor]);
             DrawOutline(lowerBeam, ScaleFactor, _outlineColor);
         }
 
@@ -152,13 +152,13 @@ namespace Drawing.Components.Structures
             float margin
         )
         {
-            return new Vector2[]
-            {
+            return
+            [
                 new Vector2(center.X - width / 2 * ScaleFactor + margin, yPosition),
                 new Vector2(center.X - width / 2 * ScaleFactor + width + 5, yPosition),
                 new Vector2(center.X - width / 2 * ScaleFactor + width + 5, yPosition + height),
                 new Vector2(center.X - width / 2 * ScaleFactor + margin, yPosition + height),
-            };
+            ];
         }
     }
 }

@@ -73,7 +73,7 @@ namespace Drawing.Components.Structures
                 ladderStart + railOffset,
             };
 
-            Canvas.DrawPolygon(ladderPolygon.ToArray(), new Color[] { _secondaryColor });
+            Canvas.DrawPolygon(ladderPolygon.ToArray(), [_secondaryColor]);
             DrawOutline(
                 ladderPolygon.ToArray(),
                 _outlineThickness * ScaleFactor * 0.5f,

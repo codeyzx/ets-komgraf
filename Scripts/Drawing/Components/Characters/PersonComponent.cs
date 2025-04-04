@@ -793,17 +793,17 @@ namespace Drawing.Components.Characters
         private void DrawTorso()
         {
             // Draw torso (elongated for more menacing appearance)
-            Vector2[] torsoPoints = new Vector2[]
-            {
+            Vector2[] torsoPoints =
+            [
                 new Vector2(-_bodyWidth / 2, -_bodyHeight * 0.8f),
                 new Vector2(_bodyWidth / 2, -_bodyHeight * 0.8f),
                 new Vector2(_bodyWidth / 2 * 0.8f, 0),
                 new Vector2(-_bodyWidth / 2 * 0.8f, 0),
-            };
+            ];
 
             Canvas.DrawPolygon(
                 torsoPoints,
-                new Color[] { _primaryColor, _primaryColor, _primaryColor, _primaryColor }
+                [_primaryColor, _primaryColor, _primaryColor, _primaryColor]
             );
 
             // Draw torso outline

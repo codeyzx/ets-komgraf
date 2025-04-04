@@ -12,7 +12,7 @@ namespace Scenes
     {
         // Building renderer and configuration
         private BuildingRenderer _buildingRenderer;
-        private BuildingConfiguration _config = new BuildingConfiguration();
+        private readonly BuildingConfiguration _config = new();
 
         // Export properties to make them configurable in the Godot editor
         [Export]
@@ -133,7 +133,7 @@ namespace Scenes
         public override void _Ready()
         {
             // Initialize the building renderer
-            _buildingRenderer = new BuildingRenderer(this, _config);
+            _buildingRenderer = new(this, _config);
 
             // Enable the ladder on the right side of the building
             _buildingRenderer.ShowLadder(true);

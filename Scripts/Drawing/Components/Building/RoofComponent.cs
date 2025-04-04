@@ -51,7 +51,7 @@ namespace Drawing.Components.Building
             float roofBaseY = Dimensions.RoofBaseY;
             float height = _roofHeight * ScaleFactor;
 
-            List<Vector2> roofPoints = new List<Vector2>();
+            List<Vector2> roofPoints = [];
 
             // Generate curved roof points
             for (int i = 0; i <= _roofSegments; i++)
@@ -60,14 +60,14 @@ namespace Drawing.Components.Building
                 float x = roofLeft + roofWidth * t;
                 // Parabolic curve for the roof
                 float y = roofBaseY - height - (4 * height * (float)Math.Pow(t - 0.5, 2));
-                roofPoints.Add(new Vector2(x, y));
+                roofPoints.Add(new(x, y));
             }
 
             // Complete the polygon
-            roofPoints.Add(new Vector2(roofRight, roofBaseY));
-            roofPoints.Add(new Vector2(roofLeft, roofBaseY));
+            roofPoints.Add(new(roofRight, roofBaseY));
+            roofPoints.Add(new(roofLeft, roofBaseY));
 
-            Canvas.DrawPolygon(roofPoints.ToArray(), new Color[] { _primaryColor });
+            Canvas.DrawPolygon(roofPoints.ToArray(), [_primaryColor]);
             DrawOutline(roofPoints.ToArray(), _outlineThickness * ScaleFactor, _outlineColor);
         }
     }

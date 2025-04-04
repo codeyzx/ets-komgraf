@@ -148,8 +148,8 @@ namespace Drawing.Renderers
                                     break;
 
                                 case 1: // Ghost-like shape
-                                    Vector2[] ghostPoints = new Vector2[]
-                                    {
+                                    Vector2[] ghostPoints =
+                                    [
                                         new Vector2(0, -size),
                                         new Vector2(size, -size / 2),
                                         new Vector2(size, size / 2),
@@ -158,7 +158,7 @@ namespace Drawing.Renderers
                                         new Vector2(-size / 2, size),
                                         new Vector2(-size, size / 2),
                                         new Vector2(-size, -size / 2),
-                                    };
+                                    ];
 
                                     Color[] ghostColors = new Color[ghostPoints.Length];
                                     for (int j = 0; j < ghostColors.Length; j++)

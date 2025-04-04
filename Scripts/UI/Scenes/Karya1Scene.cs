@@ -11,7 +11,7 @@ namespace Scenes
     {
         // Building renderer and configuration
         private SketchRenderer _sketchRenderer;
-        private BuildingConfiguration _config = new BuildingConfiguration();
+        private readonly BuildingConfiguration _config = new();
 
         // Structure configuration
         [Export]
@@ -64,7 +64,7 @@ namespace Scenes
             UpdateConfiguration();
 
             // Initialize the sketch renderer
-            _sketchRenderer = new SketchRenderer(this, _config);
+            _sketchRenderer = new(this, _config);
 
             // Force a redraw to render the sketch
             QueueRedraw();

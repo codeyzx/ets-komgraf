@@ -57,8 +57,8 @@ namespace Drawing.Components.Structures
             float centerHeight = 10 * ScaleFactor;
             float margin = 25 * ScaleFactor;
 
-            Vector2[] centerStructure = new Vector2[]
-            {
+            Vector2[] centerStructure =
+            [
                 new Vector2(
                     dimensions.HousePosition.X + margin,
                     dimensions.RoofBaseY + dimensions.WallHeight
@@ -75,9 +75,9 @@ namespace Drawing.Components.Structures
                     dimensions.HousePosition.X + margin,
                     dimensions.RoofBaseY + dimensions.WallHeight + centerHeight
                 ),
-            };
+            ];
 
-            Canvas.DrawPolygon(centerStructure, new Color[] { _secondaryColor });
+            Canvas.DrawPolygon(centerStructure, [_secondaryColor]);
             DrawOutline(centerStructure, _outlineThickness * ScaleFactor, _outlineColor);
         }
     }

@@ -62,16 +62,16 @@ namespace Drawing.Components.Building
             float extendedWallHeight = Dimensions.WallHeight + 11;
 
             // Create the trapezoidal wall dengan extendedWallHeight
-            Vector2[] mainWall = new Vector2[]
-            {
-                new Vector2(topLeftX, Dimensions.RoofBaseY),
-                new Vector2(topLeftX + topWidth, Dimensions.RoofBaseY),
-                new Vector2(bottomLeftX + bottomWidth, Dimensions.RoofBaseY + extendedWallHeight),
-                new Vector2(bottomLeftX, Dimensions.RoofBaseY + extendedWallHeight),
-            };
+            Vector2[] mainWall =
+            [
+                new(topLeftX, Dimensions.RoofBaseY),
+                new(topLeftX + topWidth, Dimensions.RoofBaseY),
+                new(bottomLeftX + bottomWidth, Dimensions.RoofBaseY + extendedWallHeight),
+                new(bottomLeftX, Dimensions.RoofBaseY + extendedWallHeight),
+            ];
 
             // Draw the main wall
-            Canvas.DrawPolygon(mainWall, new Color[] { _primaryColor });
+            Canvas.DrawPolygon(mainWall, [_primaryColor]);
 
             // Draw the black outline
             DrawOutline(mainWall, _outlineThickness * ScaleFactor, _outlineColor);
@@ -91,16 +91,16 @@ namespace Drawing.Components.Building
             float extendedWallHeight = Dimensions.WallHeight + 3;
 
             // Create the trapezoidal wall
-            Vector2[] mainWall = new Vector2[]
-            {
-                new Vector2(topLeftX, Dimensions.RoofBaseY),
-                new Vector2(topLeftX + topWidth, Dimensions.RoofBaseY),
-                new Vector2(bottomLeftX + bottomWidth, Dimensions.RoofBaseY + extendedWallHeight),
-                new Vector2(bottomLeftX, Dimensions.RoofBaseY + extendedWallHeight),
-            };
+            Vector2[] mainWall =
+            [
+                new(topLeftX, Dimensions.RoofBaseY),
+                new(topLeftX + topWidth, Dimensions.RoofBaseY),
+                new(bottomLeftX + bottomWidth, Dimensions.RoofBaseY + extendedWallHeight),
+                new(bottomLeftX, Dimensions.RoofBaseY + extendedWallHeight),
+            ];
 
             // Draw the main wall
-            Canvas.DrawPolygon(mainWall, new Color[] { _primaryColor });
+            Canvas.DrawPolygon(mainWall, [_primaryColor]);
 
             // Draw the black outline
             DrawOutline(mainWall, _outlineThickness * ScaleFactor, _outlineColor);
@@ -134,8 +134,8 @@ namespace Drawing.Components.Building
                 // Use the updated DrawBresenhamLine method that uses DrawPrimitive
                 Primitif.DrawBresenhamLine(
                     Canvas,
-                    new Vector2(x, windowTopY),
-                    new Vector2(x, windowBottomY),
+                    new(x, windowTopY),
+                    new(x, windowBottomY),
                     _outlineColor,
                     _outlineThickness * ScaleFactor
                 );

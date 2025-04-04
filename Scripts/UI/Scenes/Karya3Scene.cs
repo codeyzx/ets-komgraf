@@ -57,7 +57,7 @@ namespace Scenes
 
             // Create and show the intro scene
             _introScene = new IntroScene();
-            AddChild(_introScene);
+            CallDeferred(Node.MethodName.AddChild, _introScene);
 
             // Connect to the intro scene's completion signal
             _introScene.TreeExiting += OnIntroCompleted;
@@ -95,6 +95,49 @@ namespace Scenes
 
             // Start the animation
             _animationRenderer.StartAnimation();
+
+            // Ensure the back button remains accessible by bringing it to the front
+            EnsureBackButtonAccessibility();
+        }
+
+        /// <summary>
+        /// Ensures the back button remains accessible by bringing it to the front
+        /// </summary>
+        private void EnsureBackButtonAccessibility()
+        {
+            // Find the Control node containing the back button
+            var controlNode = GetNode<Control>("Control");
+            if (controlNode != null)
+            {
+                // Remove the existing button if it exists
+                var existingButton = controlNode.GetNode<Button>("Button");
+                if (existingButton != null)
+                {
+                    existingButton.QueueFree();
+                }
+
+                // Create a completely new button
+                Button newBackButton = new Button();
+                newBackButton.Name = "NewBackButton";
+                newBackButton.Text = "Back";
+                newBackButton.Position = new Vector2(0, 0);
+                newBackButton.Size = new Vector2(80, 30);
+                newBackButton.ZIndex = 2000;
+
+                // Style the button to make it stand out
+                newBackButton.AddThemeColorOverride("font_color", new Color(1, 1, 1));
+                newBackButton.AddThemeColorOverride("font_hover_color", new Color(1, 0.5f, 0.5f));
+                newBackButton.AddThemeColorOverride("font_focus_color", new Color(1, 0.7f, 0.7f));
+                newBackButton.AddThemeColorOverride("font_pressed_color", new Color(1, 0, 0));
+                newBackButton.AddThemeColorOverride("bg_color", new Color(0.5f, 0.1f, 0.1f));
+                newBackButton.AddThemeColorOverride("bg_hover_color", new Color(0.7f, 0.2f, 0.2f));
+
+                // Connect the pressed signal directly to our navigation method
+                newBackButton.Connect("pressed", Callable.From(() => NavigateToWelcomeScene()));
+
+                // Add the new button to the control node
+                controlNode.AddChild(newBackButton);
+            }
         }
 
         /// <summary>
@@ -106,7 +149,7 @@ namespace Scenes
             _darkOverlay = new ColorRect();
             _darkOverlay.Color = new Color(0, 0, 0, 0.3f);
             _darkOverlay.ZIndex = 10; // Above the building but below UI
-            AddChild(_darkOverlay);
+            CallDeferred(Node.MethodName.AddChild, _darkOverlay);
 
             // Set the size after it's added to the scene tree
             SetOverlaySize();
@@ -116,7 +159,7 @@ namespace Scenes
             _flickerTimer.WaitTime = 0.1f; // 100ms between flickers
             _flickerTimer.OneShot = false;
             _flickerTimer.Timeout += OnFlickerTimeout;
-            AddChild(_flickerTimer);
+            CallDeferred(Node.MethodName.AddChild, _flickerTimer);
 
             // Start the timer after it's added to the scene tree
             CallDeferred(nameof(StartFlickerTimer));
@@ -156,52 +199,42 @@ namespace Scenes
             titleLabel.Text = "Karya 3: Line Primitives & Animation";
             titleLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.1f, 0.1f));
             titleLabel.HorizontalAlignment = HorizontalAlignment.Right;
-            vbox.AddChild(titleLabel);
+            vbox.CallDeferred(Node.MethodName.AddChild, titleLabel);
 
             // Create animation controls label
             Label controlsLabel = new Label();
             controlsLabel.Text = "Press SPACE to start/restart animation";
             controlsLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
             controlsLabel.HorizontalAlignment = HorizontalAlignment.Right;
-            vbox.AddChild(controlsLabel);
+            vbox.CallDeferred(Node.MethodName.AddChild, controlsLabel);
 
             // Create animation speed label
             _animationSpeedLabel = new Label();
             _animationSpeedLabel.Text = "Animation Speed (Z/X): 1.0";
             _animationSpeedLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
             _animationSpeedLabel.HorizontalAlignment = HorizontalAlignment.Right;
-            vbox.AddChild(_animationSpeedLabel);
+            vbox.CallDeferred(Node.MethodName.AddChild, _animationSpeedLabel);
 
             // Create rotation speed label
             _rotationSpeedLabel = new Label();
             _rotationSpeedLabel.Text = "Rotation Speed (Q/W): 1.0";
             _rotationSpeedLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
             _rotationSpeedLabel.HorizontalAlignment = HorizontalAlignment.Right;
-            vbox.AddChild(_rotationSpeedLabel);
+            vbox.CallDeferred(Node.MethodName.AddChild, _rotationSpeedLabel);
 
             // Create scale speed label
             _scaleSpeedLabel = new Label();
             _scaleSpeedLabel.Text = "Scale Speed (A/S): 1.0";
             _scaleSpeedLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
             _scaleSpeedLabel.HorizontalAlignment = HorizontalAlignment.Right;
-            vbox.AddChild(_scaleSpeedLabel);
+            vbox.CallDeferred(Node.MethodName.AddChild, _scaleSpeedLabel);
 
             // Create horror effect label
             _horrorEffectLabel = new Label();
             _horrorEffectLabel.Text = "Horror Effect (E/D): 1.0";
             _horrorEffectLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
             _horrorEffectLabel.HorizontalAlignment = HorizontalAlignment.Right;
-            vbox.AddChild(_horrorEffectLabel);
-
-            // Create a back button to return to the welcome scene
-            var backButton = new Button
-            {
-                Text = "Back to Welcome",
-                Position = new Vector2(10, 10),
-                Size = new Vector2(150, 40),
-            };
-            backButton.Pressed += NavigateToWelcomeScene;
-            AddChild(backButton);
+            vbox.CallDeferred(Node.MethodName.AddChild, _horrorEffectLabel);
         }
 
         /// <summary>
@@ -250,6 +283,13 @@ namespace Scenes
         {
             base._Process(delta);
 
+            // Check for keyboard input to navigate back (Escape key)
+            if (Input.IsActionJustPressed("ui_cancel"))
+            {
+                GD.Print("Escape key pressed, navigating to Welcome scene");
+                NavigateToWelcomeScene();
+            }
+
             // Update animation if animation renderer is initialized
             if (_animationRenderer != null)
             {
@@ -291,7 +331,38 @@ namespace Scenes
         /// </summary>
         public override void _Input(InputEvent @event)
         {
+            // Skip if not ready or if event is null
+            if (@event == null || !IsInsideTree())
+            {
+                return;
+            }
+
             base._Input(@event);
+
+            // Check for mouse clicks in the back button area (top-left corner)
+            if (
+                @event is InputEventMouseButton mouseEvent
+                && mouseEvent.ButtonIndex == MouseButton.Left
+                && mouseEvent.Pressed
+            )
+            {
+                // Define the back button area (top-left corner)
+                Rect2 backButtonArea = new Rect2(0, 0, 100, 50);
+
+                // Check if the click is within the back button area
+                if (backButtonArea.HasPoint(mouseEvent.Position))
+                {
+                    GD.Print("Back button area clicked at " + mouseEvent.Position);
+                    NavigateToWelcomeScene();
+
+                    // Mark the event as handled - with null check
+                    var viewport = GetViewport();
+                    if (viewport != null)
+                    {
+                        viewport.SetInputAsHandled();
+                    }
+                }
+            }
 
             // Handle key presses for animation control
             if (@event is InputEventKey keyEvent && keyEvent.Pressed)

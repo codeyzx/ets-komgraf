@@ -41,10 +41,10 @@ namespace Drawing.Renderers
         // Horror effects
         private float _flickerEffect = 0f;
         private float _fogEffect = 0f;
-        private Random _random = new Random();
-        private List<Vector2> _fogParticles = new List<Vector2>();
-        private List<int> _fogParticleTypes = new List<int>(); // Type of each particle (0-5)
-        private List<float> _fogParticleRotations = new List<float>(); // Rotation of each particle
+        private readonly Random _random = new();
+        private readonly List<Vector2> _fogParticles = [];
+        private readonly List<int> _fogParticleTypes = []; // Type of each particle (0-5)
+        private readonly List<float> _fogParticleRotations = []; // Rotation of each particle
         private const int FOG_PARTICLE_COUNT = 200; // Increased from 50 to 200
 
         // Ladder animation
@@ -60,7 +60,7 @@ namespace Drawing.Renderers
         private PersonComponent _rollingHead;
 
         // People animation
-        private List<PersonComponent> _people = new List<PersonComponent>();
+        private readonly List<PersonComponent> _people = [];
         private const int PEOPLE_COUNT = 5;
 
         /// <summary>
@@ -72,7 +72,7 @@ namespace Drawing.Renderers
         {
             _canvas = canvas ?? throw new ArgumentNullException(nameof(canvas));
             _config = config ?? throw new ArgumentNullException(nameof(config));
-            _primitif = new Primitif();
+            _primitif = new();
         }
 
         /// <summary>
@@ -85,7 +85,7 @@ namespace Drawing.Renderers
             _center = viewportSize / 2;
 
             // Calculate and cache building dimensions
-            _dimensions = new BuildingDimensions(
+            _dimensions = new(
                 _center,
                 _config.BaseWidth * _scaleFactor,
                 _config.BaseHeight * _scaleFactor,

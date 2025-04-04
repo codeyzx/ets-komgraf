@@ -44,20 +44,16 @@ namespace Core
         /// <summary>
         /// Draws a thin line (thickness <= 1) using a simple two-point primitive.
         /// </summary>
-        private void DrawThinLine(CanvasItem canvas, Vector2 from, Vector2 to, Color color)
+        private static void DrawThinLine(CanvasItem canvas, Vector2 from, Vector2 to, Color color)
         {
-            Vector2[] points = new Vector2[] { from, to };
-            canvas.DrawPrimitive(
-                points,
-                new Color[] { color, color },
-                new Vector2[] { Vector2.Zero, Vector2.One }
-            );
+            Vector2[] points = [from, to];
+            canvas.DrawPrimitive(points, [color, color], [Vector2.Zero, Vector2.One]);
         }
 
         /// <summary>
         /// Draws a thick line as a filled quad with the specified thickness.
         /// </summary>
-        private void DrawThickLine(
+        private static void DrawThickLine(
             CanvasItem canvas,
             Vector2 from,
             Vector2 to,
@@ -69,21 +65,23 @@ namespace Core
             Vector2 perpendicular = new Vector2(-direction.Y, direction.X) * (thickness / 2f);
 
             // Create four corners of the rectangle
-            Vector2[] thickPoints = new Vector2[4];
-            thickPoints[0] = from + perpendicular; // Top left
-            thickPoints[1] = from - perpendicular; // Bottom left
-            thickPoints[2] = to - perpendicular; // Bottom right
-            thickPoints[3] = to + perpendicular; // Top right
+            Vector2[] thickPoints =
+            [
+                from + perpendicular, // Top left
+                from - perpendicular, // Bottom left
+                to - perpendicular, // Bottom right
+                to + perpendicular, // Top right
+            ];
 
             // Colors and UVs for the quad
-            Color[] colors = new Color[] { color, color, color, color };
-            Vector2[] uvs = new Vector2[]
-            {
+            Color[] colors = [color, color, color, color];
+            Vector2[] uvs =
+            [
                 new Vector2(0, 0), // Top left
                 new Vector2(0, 1), // Bottom left
                 new Vector2(1, 1), // Bottom right
                 new Vector2(1, 0), // Top right
-            };
+            ];
 
             // Draw the thick line as a filled quad
             canvas.DrawPrimitive(thickPoints, colors, uvs);
