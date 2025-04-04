@@ -11,8 +11,11 @@ namespace UI
     /// </summary>
     public partial class Karya3 : Node2D
     {
-        // Building renderer
-        private BuildingRenderer _buildingRenderer;
+        // Animation renderer for animations and components only (no house structure)
+        private AnimationOnlyRenderer _animationRenderer;
+
+        // Sketch renderer for line primitive drawing of the house
+        private SketchRenderer _sketchRenderer;
 
         // Building configuration
         private BuildingConfiguration _config = new BuildingConfiguration
@@ -43,6 +46,9 @@ namespace UI
         // Show Begu Ganjang intro scene first
         private IntroScene _introScene;
 
+        // Flag to control whether to draw the house structure
+        private bool _drawHouseStructure = false;
+
         /// <summary>
         /// Called when the node enters the scene tree for the first time.
         /// </summary>
@@ -72,11 +78,15 @@ namespace UI
 
         private void InitializeMainGame()
         {
-            // Initialize building renderer
-            _buildingRenderer = new BuildingRenderer(this, _config);
+            // Initialize animation renderer for animation and components
+            _animationRenderer = new AnimationOnlyRenderer(this, _config);
+
+            // Initialize sketch renderer for line primitive drawing
+            _sketchRenderer = new SketchRenderer(this, _config);
 
             // Initialize drawing parameters
-            _buildingRenderer.InitializeDrawingParameters(GetViewportRect().Size);
+            _animationRenderer.InitializeDrawingParameters(GetViewportRect().Size);
+            _sketchRenderer.InitializeDrawingParameters(GetViewportRect().Size);
 
             // Create UI controls
             CreateControls();
@@ -84,48 +94,8 @@ namespace UI
             // Create horror effects
             CreateHorrorEffects();
 
-            // Ensure the back button remains accessible by bringing it to the front
-            EnsureBackButtonAccessibility();
-        }
-
-        /// <summary>
-        /// Ensures the back button remains accessible by bringing it to the front
-        /// </summary>
-        private void EnsureBackButtonAccessibility()
-        {
-            // Find the Control node containing the back button
-            var controlNode = GetNode<Control>("Control");
-            if (controlNode != null)
-            {
-                // Remove the existing button if it exists
-                var existingButton = controlNode.GetNode<Button>("Button");
-                if (existingButton != null)
-                {
-                    existingButton.QueueFree();
-                }
-
-                // Create a completely new button
-                Button newBackButton = new Button();
-                newBackButton.Name = "NewBackButton";
-                newBackButton.Text = "Back";
-                newBackButton.Position = new Vector2(0, 0);
-                newBackButton.Size = new Vector2(80, 30);
-                newBackButton.ZIndex = 2000;
-
-                // Style the button to make it stand out
-                newBackButton.AddThemeColorOverride("font_color", new Color(1, 1, 1));
-                newBackButton.AddThemeColorOverride("font_hover_color", new Color(1, 0.5f, 0.5f));
-                newBackButton.AddThemeColorOverride("font_focus_color", new Color(1, 0.7f, 0.7f));
-                newBackButton.AddThemeColorOverride("font_pressed_color", new Color(1, 0, 0));
-                newBackButton.AddThemeColorOverride("bg_color", new Color(0.5f, 0.1f, 0.1f));
-                newBackButton.AddThemeColorOverride("bg_hover_color", new Color(0.7f, 0.2f, 0.2f));
-
-                // Connect the pressed signal directly to our navigation method
-                newBackButton.Connect("pressed", Callable.From(() => NavigateToWelcomeScene()));
-
-                // Add the new button to the control node
-                controlNode.AddChild(newBackButton);
-            }
+            // Start the animation
+            _animationRenderer.StartAnimation();
         }
 
         /// <summary>
@@ -133,28 +103,24 @@ namespace UI
         /// </summary>
         private void CreateHorrorEffects()
         {
-            // Create dark overlay for horror atmosphere
+            // Create a dark overlay
             _darkOverlay = new ColorRect();
-            _darkOverlay.AnchorRight = 1;
-            _darkOverlay.AnchorBottom = 1;
-            _darkOverlay.AnchorLeft = 0;
-            _darkOverlay.AnchorTop = 0;
-
-            // Set the size after the node is added to the scene tree
-            CallDeferred(Node.MethodName.AddChild, _darkOverlay);
-            CallDeferred("SetOverlaySize");
-
-            _darkOverlay.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-            _darkOverlay.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
             _darkOverlay.Color = new Color(0, 0, 0, 0.3f);
+            _darkOverlay.ZIndex = 10; // Above the building but below UI
+            AddChild(_darkOverlay);
 
-            // Create flicker timer
+            // Set the size after it's added to the scene tree
+            SetOverlaySize();
+
+            // Create a flicker timer
             _flickerTimer = new Timer();
-            _flickerTimer.WaitTime = 0.1f;
-            _flickerTimer.Autostart = false;
-            _flickerTimer.OneShot = true;
+            _flickerTimer.WaitTime = 0.1f; // 100ms between flickers
+            _flickerTimer.OneShot = false;
             _flickerTimer.Timeout += OnFlickerTimeout;
-            CallDeferred(Node.MethodName.AddChild, _flickerTimer);
+            AddChild(_flickerTimer);
+
+            // Start the timer after it's added to the scene tree
+            CallDeferred(nameof(StartFlickerTimer));
         }
 
         /// <summary>
@@ -162,14 +128,15 @@ namespace UI
         /// </summary>
         private void SetOverlaySize()
         {
-            if (_darkOverlay != null && _darkOverlay.IsInsideTree())
+            if (_darkOverlay.IsInsideTree())
             {
-                _darkOverlay.SetDeferred("size", GetViewportRect().Size);
+                _darkOverlay.Size = GetViewportRect().Size;
+                _darkOverlay.Position = Vector2.Zero;
             }
         }
 
         /// <summary>
-        /// Creates UI controls for the animation.
+        /// Creates the UI controls for adjusting animation parameters.
         /// </summary>
         private void CreateControls()
         {
@@ -187,7 +154,7 @@ namespace UI
 
             // Create title label
             Label titleLabel = new Label();
-            titleLabel.Text = "Horror Animation Controls";
+            titleLabel.Text = "Karya 3: Line Primitives & Animation";
             titleLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.1f, 0.1f));
             titleLabel.HorizontalAlignment = HorizontalAlignment.Right;
             vbox.AddChild(titleLabel);
@@ -201,41 +168,51 @@ namespace UI
 
             // Create animation speed label
             _animationSpeedLabel = new Label();
-            _animationSpeedLabel.Text = "Animation Speed (1-5): 1";
+            _animationSpeedLabel.Text = "Animation Speed (Z/X): 1.0";
             _animationSpeedLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
             _animationSpeedLabel.HorizontalAlignment = HorizontalAlignment.Right;
             vbox.AddChild(_animationSpeedLabel);
 
             // Create rotation speed label
             _rotationSpeedLabel = new Label();
-            _rotationSpeedLabel.Text = "Rotation Speed (Q/W): 0";
+            _rotationSpeedLabel.Text = "Rotation Speed (Q/W): 1.0";
             _rotationSpeedLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
             _rotationSpeedLabel.HorizontalAlignment = HorizontalAlignment.Right;
             vbox.AddChild(_rotationSpeedLabel);
 
             // Create scale speed label
             _scaleSpeedLabel = new Label();
-            _scaleSpeedLabel.Text = "Scale Speed (A/S): 0";
+            _scaleSpeedLabel.Text = "Scale Speed (A/S): 1.0";
             _scaleSpeedLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
             _scaleSpeedLabel.HorizontalAlignment = HorizontalAlignment.Right;
             vbox.AddChild(_scaleSpeedLabel);
 
             // Create horror effect label
             _horrorEffectLabel = new Label();
-            _horrorEffectLabel.Text = "Horror Effect (Z/X): 1.0";
-            _horrorEffectLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.1f, 0.1f));
+            _horrorEffectLabel.Text = "Horror Effect (E/D): 1.0";
+            _horrorEffectLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
             _horrorEffectLabel.HorizontalAlignment = HorizontalAlignment.Right;
             vbox.AddChild(_horrorEffectLabel);
+
+            // Create a back button to return to the welcome scene
+            var backButton = new Button
+            {
+                Text = "Back to Welcome",
+                Position = new Vector2(10, 10),
+                Size = new Vector2(150, 40)
+            };
+            backButton.Pressed += NavigateToWelcomeScene;
+            AddChild(backButton);
         }
 
         /// <summary>
-        /// Sets the size of the VBoxContainer after it has been added to the scene tree
+        /// Sets the size of the VBox container.
         /// </summary>
         private void SetVBoxSize(VBoxContainer vbox)
         {
             if (vbox != null && vbox.IsInsideTree())
             {
-                vbox.SetDeferred("size", new Vector2(300, GetViewportRect().Size.Y - 20));
+                vbox.Size = new Vector2(280, GetViewportRect().Size.Y - 20);
             }
         }
 
@@ -244,25 +221,26 @@ namespace UI
         /// </summary>
         private void OnFlickerTimeout()
         {
-            if (_random.NextDouble() < 0.3f * _horrorEffectIntensity)
+            // Only apply flicker if horror effect is enabled
+            if (_horrorEffectIntensity > 0)
             {
-                // Create a brief flicker
-                _darkOverlay.Color = new Color(
-                    0,
-                    0,
-                    0,
-                    0.3f + (float)_random.NextDouble() * 0.3f * _horrorEffectIntensity
-                );
-                _flickerTimer.WaitTime = 0.05f + (float)_random.NextDouble() * 0.1f;
-            }
-            else
-            {
-                // Reset flicker
-                _darkOverlay.Color = new Color(0, 0, 0, 0.3f);
-                _flickerTimer.WaitTime = 0.5f + (float)_random.NextDouble() * 2.0f;
-            }
+                // Random chance to flicker based on intensity
+                if (_random.NextDouble() < 0.3f * _horrorEffectIntensity)
+                {
+                    // Toggle the overlay alpha between normal and more transparent
+                    if (_darkOverlay.Color.A > 0.15f)
+                    {
+                        _darkOverlay.Color = new Color(0, 0, 0, 0.1f);
+                    }
+                    else
+                    {
+                        _darkOverlay.Color = new Color(0, 0, 0, 0.3f * _horrorEffectIntensity);
+                    }
 
-            _flickerTimer.Start();
+                    // Force a redraw to update the scene
+                    QueueRedraw();
+                }
+            }
         }
 
         /// <summary>
@@ -273,155 +251,20 @@ namespace UI
         {
             base._Process(delta);
 
-            // Check for keyboard input to navigate back (Escape key)
-            if (Input.IsActionJustPressed("ui_cancel"))
+            // Update animation if animation renderer is initialized
+            if (_animationRenderer != null)
             {
-                GD.Print("Escape key pressed, navigating to Welcome scene");
-                NavigateToWelcomeScene();
-            }
+                // Update the animation but don't draw the house structure
+                _animationRenderer.UpdateAnimation((float)delta);
 
-            // Only update animation if the building renderer has been initialized
-            if (_buildingRenderer != null)
-            {
-                _buildingRenderer.UpdateAnimation((float)delta);
+                // Force a redraw to update the scene
                 QueueRedraw();
             }
-        }
 
-        /// <summary>
-        /// Handles input events directly.
-        /// </summary>
-        public override void _Input(InputEvent @event)
-        {
-            // Skip if not ready or if event is null
-            if (@event == null || !IsInsideTree())
+            // Ensure the overlay covers the entire viewport if it's resized
+            if (_darkOverlay != null && _darkOverlay.IsInsideTree())
             {
-                return;
-            }
-            
-            base._Input(@event);
-
-            // Check for mouse clicks in the back button area (top-left corner)
-            if (
-                @event is InputEventMouseButton mouseEvent
-                && mouseEvent.ButtonIndex == MouseButton.Left
-                && mouseEvent.Pressed
-            )
-            {
-                // Define the back button area (top-left corner)
-                Rect2 backButtonArea = new Rect2(0, 0, 100, 50);
-
-                // Check if the click is within the back button area
-                if (backButtonArea.HasPoint(mouseEvent.Position))
-                {
-                    GD.Print("Back button area clicked at " + mouseEvent.Position);
-                    NavigateToWelcomeScene();
-
-                    // Mark the event as handled - with null check
-                    var viewport = GetViewport();
-                    if (viewport != null)
-                    {
-                        viewport.SetInputAsHandled();
-                    }
-                }
-            }
-            
-            // Handle animation control keys
-            if (@event is InputEventKey keyEvent && keyEvent.Pressed)
-            {
-                // Skip key handling if building renderer is not initialized
-                if (_buildingRenderer == null)
-                    return;
-                    
-                switch (keyEvent.Keycode)
-                {
-                    case Key.Space:
-                        // Start/restart animation
-                        _buildingRenderer.StartAnimation();
-
-                        // Start flicker effect if timer is in the scene tree
-                        if (_flickerTimer.IsInsideTree())
-                        {
-                            _flickerTimer.Start();
-                        }
-                        else
-                        {
-                            // If timer is not yet in the scene tree, defer the start
-                            CallDeferred("StartFlickerTimer");
-                        }
-                        break;
-
-                    case Key.Key1:
-                        _buildingRenderer.SetAnimationSpeed(1.0f);
-                        _animationSpeedLabel.Text = "Animation Speed (1-5): 1";
-                        break;
-
-                    case Key.Key2:
-                        _buildingRenderer.SetAnimationSpeed(2.0f);
-                        _animationSpeedLabel.Text = "Animation Speed (1-5): 2";
-                        break;
-
-                    case Key.Key3:
-                        _buildingRenderer.SetAnimationSpeed(3.0f);
-                        _animationSpeedLabel.Text = "Animation Speed (1-5): 3";
-                        break;
-
-                    case Key.Key4:
-                        _buildingRenderer.SetAnimationSpeed(4.0f);
-                        _animationSpeedLabel.Text = "Animation Speed (1-5): 4";
-                        break;
-
-                    case Key.Key5:
-                        _buildingRenderer.SetAnimationSpeed(5.0f);
-                        _animationSpeedLabel.Text = "Animation Speed (1-5): 5";
-                        break;
-
-                    case Key.Q:
-                        // Decrease rotation speed
-                        float rotSpeed = 0f;
-                        if (rotSpeed > 0)
-                            rotSpeed -= 0.5f;
-                        _buildingRenderer.SetRotationSpeed(rotSpeed);
-                        _rotationSpeedLabel.Text = $"Rotation Speed (Q/W): {rotSpeed}";
-                        break;
-
-                    case Key.W:
-                        // Increase rotation speed
-                        rotSpeed = 1.0f;
-                        _buildingRenderer.SetRotationSpeed(rotSpeed);
-                        _rotationSpeedLabel.Text = $"Rotation Speed (Q/W): {rotSpeed}";
-                        break;
-
-                    case Key.A:
-                        // Decrease scale speed
-                        float scaleSpeed = 0f;
-                        if (scaleSpeed > 0)
-                            scaleSpeed -= 0.5f;
-                        _buildingRenderer.SetScaleSpeed(scaleSpeed);
-                        _scaleSpeedLabel.Text = $"Scale Speed (A/S): {scaleSpeed}";
-                        break;
-
-                    case Key.S:
-                        // Increase scale speed
-                        scaleSpeed = 1.0f;
-                        _buildingRenderer.SetScaleSpeed(scaleSpeed);
-                        _scaleSpeedLabel.Text = $"Scale Speed (A/S): {scaleSpeed}";
-                        break;
-
-                    case Key.Z:
-                        // Decrease horror effect intensity
-                        _horrorEffectIntensity = Math.Max(_horrorEffectIntensity - 0.1f, 0f);
-                        _horrorEffectLabel.Text = $"Horror Effect (Z/X): {_horrorEffectIntensity:F1}";
-                        UpdateHorrorEffects();
-                        break;
-
-                    case Key.X:
-                        // Increase horror effect intensity
-                        _horrorEffectIntensity = Math.Min(_horrorEffectIntensity + 0.1f, 2f);
-                        _horrorEffectLabel.Text = $"Horror Effect (Z/X): {_horrorEffectIntensity:F1}";
-                        UpdateHorrorEffects();
-                        break;
-                }
+                SetOverlaySize();
             }
         }
 
@@ -430,10 +273,109 @@ namespace UI
         /// </summary>
         public override void _Draw()
         {
-            // Draw the building if the renderer has been initialized
-            if (_buildingRenderer != null)
+            // First draw the building using sketch renderer (line primitives only)
+            if (_sketchRenderer != null)
             {
-                _buildingRenderer.Draw();
+                _sketchRenderer.Draw();
+            }
+
+            // Then draw animations and components using the animation renderer
+            // This renderer will skip drawing the house structure
+            if (_animationRenderer != null)
+            {
+                _animationRenderer.Draw();
+            }
+        }
+
+        /// <summary>
+        /// Handles input events directly.
+        /// </summary>
+        public override void _Input(InputEvent @event)
+        {
+            base._Input(@event);
+
+            // Handle key presses for animation control
+            if (@event is InputEventKey keyEvent && keyEvent.Pressed)
+            {
+                switch (keyEvent.Keycode)
+                {
+                    case Key.Escape:
+                        // Navigate back to the welcome scene
+                        NavigateToWelcomeScene();
+                        break;
+
+                    case Key.Space:
+                        // Start the animation
+                        if (_animationRenderer != null)
+                        {
+                            _animationRenderer.StartAnimation();
+                        }
+                        break;
+
+                    case Key.Z:
+                        // Decrease animation speed
+                        if (_animationRenderer != null)
+                        {
+                            float speed = 0.5f;
+                            _animationRenderer.SetAnimationSpeed(speed);
+                            _animationSpeedLabel.Text = $"Animation Speed (Z/X): {speed:F1}";
+                        }
+
+                        // Decrease horror effect intensity
+                        _horrorEffectIntensity = Math.Max(_horrorEffectIntensity - 0.1f, 0f);
+                        _horrorEffectLabel.Text =
+                            $"Horror Effect (E/D): {_horrorEffectIntensity:F1}";
+                        UpdateHorrorEffects();
+                        break;
+
+                    case Key.X:
+                        // Increase animation speed
+                        if (_animationRenderer != null)
+                        {
+                            float speed = 1.5f;
+                            _animationRenderer.SetAnimationSpeed(speed);
+                            _animationSpeedLabel.Text = $"Animation Speed (Z/X): {speed:F1}";
+                        }
+
+                        // Increase horror effect intensity
+                        _horrorEffectIntensity = Math.Min(_horrorEffectIntensity + 0.1f, 2f);
+                        _horrorEffectLabel.Text =
+                            $"Horror Effect (E/D): {_horrorEffectIntensity:F1}";
+                        UpdateHorrorEffects();
+                        break;
+
+                    case Key.Q:
+                        // Decrease rotation speed
+                        float rotSpeed = 0f;
+                        if (rotSpeed > 0)
+                            rotSpeed -= 0.5f;
+                        _animationRenderer.SetRotationSpeed(rotSpeed);
+                        _rotationSpeedLabel.Text = $"Rotation Speed (Q/W): {rotSpeed}";
+                        break;
+
+                    case Key.W:
+                        // Increase rotation speed
+                        rotSpeed = 1.0f;
+                        _animationRenderer.SetRotationSpeed(rotSpeed);
+                        _rotationSpeedLabel.Text = $"Rotation Speed (Q/W): {rotSpeed}";
+                        break;
+
+                    case Key.A:
+                        // Decrease scale speed
+                        float scaleSpeed = 0f;
+                        if (scaleSpeed > 0)
+                            scaleSpeed -= 0.5f;
+                        _animationRenderer.SetScaleSpeed(scaleSpeed);
+                        _scaleSpeedLabel.Text = $"Scale Speed (A/S): {scaleSpeed}";
+                        break;
+
+                    case Key.S:
+                        // Increase scale speed
+                        scaleSpeed = 1.0f;
+                        _animationRenderer.SetScaleSpeed(scaleSpeed);
+                        _scaleSpeedLabel.Text = $"Scale Speed (A/S): {scaleSpeed}";
+                        break;
+                }
             }
         }
 
@@ -477,10 +419,18 @@ namespace UI
             base._Notification(what);
 
             // Check if the notification is for a resize
-            if (what == NotificationWMSizeChanged && _buildingRenderer != null)
+            if (what == NotificationWMSizeChanged)
             {
                 // Update drawing parameters with the new viewport size
-                _buildingRenderer.InitializeDrawingParameters(GetViewportRect().Size);
+                if (_animationRenderer != null)
+                {
+                    _animationRenderer.InitializeDrawingParameters(GetViewportRect().Size);
+                }
+
+                if (_sketchRenderer != null)
+                {
+                    _sketchRenderer.InitializeDrawingParameters(GetViewportRect().Size);
+                }
             }
         }
     }
