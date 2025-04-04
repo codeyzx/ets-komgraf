@@ -40,7 +40,9 @@ namespace Drawing
         private float _fogEffect = 0f;
         private Random _random = new Random();
         private List<Vector2> _fogParticles = new List<Vector2>();
-        private const int FOG_PARTICLE_COUNT = 50;
+        private List<int> _fogParticleTypes = new List<int>(); // Type of each particle (0-5)
+        private List<float> _fogParticleRotations = new List<float>(); // Rotation of each particle
+        private const int FOG_PARTICLE_COUNT = 200; // Increased from 50 to 200
 
         // Ladder animation
         private bool _isLadderAnimating = false;
@@ -84,6 +86,26 @@ namespace Drawing
                 _config.WallHeight * _scaleFactor,
                 _config.RoofHeight * _scaleFactor
             );
+
+            // Initialize fog particles to cover the entire screen
+            _fogParticles.Clear();
+            _fogParticleTypes.Clear();
+            _fogParticleRotations.Clear();
+            
+            for (int i = 0; i < FOG_PARTICLE_COUNT; i++)
+            {
+                // Spread particles across the entire viewport
+                _fogParticles.Add(new Vector2(
+                    _random.Next(0, (int)viewportSize.X),
+                    _random.Next(0, (int)viewportSize.Y)
+                ));
+                
+                // Assign random shape type (0-5)
+                _fogParticleTypes.Add(_random.Next(0, 6));
+                
+                // Assign random rotation
+                _fogParticleRotations.Add((float)_random.NextDouble() * Mathf.Pi * 2);
+            }
 
             // Initialize components if they haven't been created yet
             if (_roofComponent == null)
@@ -162,24 +184,6 @@ namespace Drawing
         private void InitializePeople()
         {
             _people.Clear();
-
-            // Initialize fog particles
-            _fogParticles.Clear();
-            for (int i = 0; i < FOG_PARTICLE_COUNT; i++)
-            {
-                _fogParticles.Add(
-                    new Vector2(
-                        _random.Next(
-                            (int)(_dimensions.HousePosition.X - 100),
-                            (int)(_dimensions.HousePosition.X + _dimensions.HouseWidth + 200)
-                        ),
-                        _random.Next(
-                            (int)(_dimensions.RoofBaseY),
-                            (int)(_dimensions.RoofBaseY + _dimensions.WallHeight * 2)
-                        )
-                    )
-                );
-            }
 
             // Calculate ladder position for people to start from
             float rightEdgeX =
@@ -316,8 +320,80 @@ namespace Drawing
                 // Draw fog particles
                 foreach (var particle in _fogParticles)
                 {
-                    float size = (float)(_random.NextDouble() * 5 + 3) * _scaleFactor;
-                    _canvas.DrawCircle(particle, size, new Color(0.9f, 0.9f, 0.95f, 0.1f));
+                    int index = _fogParticles.IndexOf(particle);
+                    int particleType = _fogParticleTypes[index];
+                    float rotation = _fogParticleRotations[index];
+                    float size = (float)(_random.NextDouble() * 8 + 5) * _scaleFactor;
+                    Color fogColor = new Color(0.9f, 0.9f, 0.95f, 0.15f);
+                    
+                    // Apply transformation for rotation
+                    _canvas.DrawSetTransform(particle, rotation, Vector2.One);
+                    
+                    // Draw different scary shapes based on particleType
+                    switch (particleType)
+                    {
+                        case 0: // Skull-like shape
+                            _canvas.DrawCircle(Vector2.Zero, size, fogColor);
+                            _canvas.DrawCircle(new Vector2(-size/3, -size/3), size/3, fogColor);
+                            _canvas.DrawCircle(new Vector2(size/3, -size/3), size/3, fogColor);
+                            _canvas.DrawRect(new Rect2(-size/2, 0, size, size/3), fogColor);
+                            break;
+                            
+                        case 1: // Ghost-like shape
+                            Vector2[] ghostPoints = new Vector2[]{
+                                new Vector2(0, -size),
+                                new Vector2(size, -size/2),
+                                new Vector2(size, size/2),
+                                new Vector2(size/2, size),
+                                new Vector2(0, size/2),
+                                new Vector2(-size/2, size),
+                                new Vector2(-size, size/2),
+                                new Vector2(-size, -size/2),
+                            };
+                            _canvas.DrawPolygon(ghostPoints, new Color[]{fogColor, fogColor, fogColor, fogColor, fogColor, fogColor, fogColor, fogColor});
+                            break;
+                            
+                        case 2: // Wispy tendril
+                            for (int i = 0; i < 5; i++)
+                            {
+                                float offset = i * size/4;
+                                _canvas.DrawCircle(new Vector2(offset, 0), size/2 - i*size/10, fogColor);
+                            }
+                            break;
+                            
+                        case 3: // Distorted face
+                            _canvas.DrawCircle(Vector2.Zero, size, fogColor);
+                            _canvas.DrawCircle(new Vector2(-size/3, -size/4), size/5, new Color(0, 0, 0, 0.2f));
+                            _canvas.DrawCircle(new Vector2(size/3, -size/4), size/5, new Color(0, 0, 0, 0.2f));
+                            _canvas.DrawLine(new Vector2(-size/2, size/3), new Vector2(size/2, size/3), new Color(0, 0, 0, 0.2f), size/10);
+                            break;
+                            
+                        case 4: // Creepy hand
+                            _canvas.DrawCircle(Vector2.Zero, size/2, fogColor);
+                            for (int i = 0; i < 5; i++)
+                            {
+                                float angle = (i - 2) * Mathf.Pi/8;
+                                _canvas.DrawLine(
+                                    Vector2.Zero, 
+                                    new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * size, 
+                                    fogColor, 
+                                    size/5
+                                );
+                            }
+                            break;
+                            
+                        case 5: // Mist cloud
+                        default:
+                            _canvas.DrawCircle(Vector2.Zero, size, fogColor);
+                            _canvas.DrawCircle(new Vector2(size/2, 0), size*0.7f, fogColor);
+                            _canvas.DrawCircle(new Vector2(-size/2, 0), size*0.7f, fogColor);
+                            _canvas.DrawCircle(new Vector2(0, size/2), size*0.7f, fogColor);
+                            _canvas.DrawCircle(new Vector2(0, -size/2), size*0.7f, fogColor);
+                            break;
+                    }
+                    
+                    // Reset transformation
+                    _canvas.DrawSetTransform(Vector2.Zero, 0, Vector2.One);
                 }
 
                 // Draw a semi-transparent dark overlay
@@ -404,24 +480,56 @@ namespace Drawing
             {
                 Vector2 particle = _fogParticles[i];
 
-                // Move particles slowly
-                particle.X += (float)(_random.NextDouble() * 2 - 1) * delta * 10;
-                particle.Y -= (float)_random.NextDouble() * delta * 5;
+                // Move particles slowly with more varied movement
+                particle.X += (float)(_random.NextDouble() * 2 - 1) * delta * 15;
+                particle.Y += (float)(_random.NextDouble() * 2 - 1) * delta * 10; // Allow vertical movement in both directions
 
-                // Reset particles that move too far
+                // Slowly rotate particles
+                _fogParticleRotations[i] += delta * ((float)_random.NextDouble() * 0.5f - 0.25f);
+
+                // Reset particles that move off screen
                 if (
-                    particle.Y < _dimensions.RoofBaseY - 100
-                    || particle.X < _dimensions.HousePosition.X - 200
-                    || particle.X > _dimensions.HousePosition.X + _dimensions.HouseWidth + 300
+                    particle.Y < 0 || 
+                    particle.Y > _canvas.GetViewportRect().Size.Y ||
+                    particle.X < 0 || 
+                    particle.X > _canvas.GetViewportRect().Size.X
                 )
                 {
-                    particle = new Vector2(
-                        _random.Next(
-                            (int)(_dimensions.HousePosition.X - 100),
-                            (int)(_dimensions.HousePosition.X + _dimensions.HouseWidth + 200)
-                        ),
-                        _dimensions.RoofBaseY + _dimensions.WallHeight * 2
-                    );
+                    // Respawn at a random edge of the screen
+                    int edge = _random.Next(0, 4);
+                    switch (edge)
+                    {
+                        case 0: // Top
+                            particle = new Vector2(
+                                _random.Next(0, (int)_canvas.GetViewportRect().Size.X),
+                                0
+                            );
+                            break;
+                        case 1: // Right
+                            particle = new Vector2(
+                                _canvas.GetViewportRect().Size.X,
+                                _random.Next(0, (int)_canvas.GetViewportRect().Size.Y)
+                            );
+                            break;
+                        case 2: // Bottom
+                            particle = new Vector2(
+                                _random.Next(0, (int)_canvas.GetViewportRect().Size.X),
+                                _canvas.GetViewportRect().Size.Y
+                            );
+                            break;
+                        case 3: // Left
+                            particle = new Vector2(
+                                0,
+                                _random.Next(0, (int)_canvas.GetViewportRect().Size.Y)
+                            );
+                            break;
+                    }
+                    
+                    // Assign a new random shape
+                    _fogParticleTypes[i] = _random.Next(0, 6);
+                    
+                    // Reset rotation
+                    _fogParticleRotations[i] = (float)_random.NextDouble() * Mathf.Pi * 2;
                 }
 
                 _fogParticles[i] = particle;
