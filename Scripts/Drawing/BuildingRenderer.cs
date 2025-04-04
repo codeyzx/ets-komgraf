@@ -48,6 +48,9 @@ namespace Drawing
         private bool _isLadderAnimating = false;
         private float _ladderOpenAmount = 0f;
         private float _ladderOpenSpeed = 1.0f;
+        private float _ladderExtendAmount = 0f;
+        private float _ladderExtendSpeed = 0.8f;
+        private bool _isLadderExtending = false;
 
         // Rolling head animation
         private bool _rollingHeadStarted = false;
@@ -259,23 +262,27 @@ namespace Drawing
                 Color primaryColor;
 
                 // More varied colors for ghosts
-                switch (i % 4)
+                switch (i % 5)
                 {
                     case 0:
                         // White
-                        primaryColor = new Color(1f, 1f, 1f, 0.9f);
+                        primaryColor = new Color(0.5f, 0.1f, 0.5f, 0.9f);
                         break;
                     case 1:
                         // Dark shadowy
                         primaryColor = new Color(0.1f, 0.1f, 0.15f, 0.9f);
                         break;
                     case 2:
-                        // Pale ghostly
-                        primaryColor = new Color(0.5f, 0.5f, 0.6f, 0.8f);
+                        // purple
+                        primaryColor = new Color(1f, 1f, 1f, 0.9f);
+                        break;
+                    case 3:
+                        // green
+                        primaryColor = new Color(0.1f, 0.5f, 0.1f, 0.8f);
                         break;
                     default:
-                        // Dark reddish-brown
-                        primaryColor = new Color(0.3f, 0.1f, 0.05f, 0.9f);
+                        //  dark blue
+                        primaryColor = new Color(0.1f, 0.1f, 0.5f, 0.9f);
                         break;
                 }
 
@@ -462,22 +469,30 @@ namespace Drawing
             // Draw ladder with animation if it's visible
             if (_showLadder)
             {
+                float rightEdgeX =
+                    _dimensions.HousePosition.X + _dimensions.HouseWidth - 20 * _scaleFactor;
+                float startY = _dimensions.RoofBaseY + _dimensions.WallHeight * _scaleFactor;
+
+                // Calculate ladder pivot point (top of ladder)
+                Vector2 ladderPivot = new Vector2(rightEdgeX - 30 * _scaleFactor, startY);
+
                 // Apply transformation for ladder animation
-                if (_isLadderAnimating)
+                if (_isLadderAnimating || _ladderOpenAmount > 0)
                 {
-                    float rightEdgeX =
-                        _dimensions.HousePosition.X + _dimensions.HouseWidth - 20 * _scaleFactor;
-                    float startY = _dimensions.RoofBaseY + _dimensions.WallHeight * _scaleFactor;
-
-                    // Calculate ladder pivot point (top of ladder)
-                    Vector2 ladderPivot = new Vector2(rightEdgeX - 30 * _scaleFactor, startY);
-
                     // Apply rotation transformation for ladder opening animation
                     _canvas.DrawSetTransform(
                         ladderPivot,
                         _ladderOpenAmount * Mathf.Pi / 2, // Rotate from 0 to 90 degrees
                         Vector2.One
                     );
+
+                    // Draw the ladder with extension animation
+                    if (_isLadderExtending || _ladderExtendAmount > 0)
+                    {
+                        // Scale the ladder vertically based on extension amount
+                        float scaleY = _ladderExtendAmount;
+                        _canvas.DrawSetTransform(Vector2.Zero, 0, new Vector2(1, scaleY));
+                    }
 
                     // Draw the ladder at the origin (pivot point)
                     _ladderComponent.Draw();
@@ -597,7 +612,22 @@ namespace Drawing
                     _ladderOpenAmount = 1.0f;
                     _isLadderAnimating = false;
 
-                    // Start rolling head animation when ladder is fully open
+                    // Start ladder extending animation after ladder is fully rotated
+                    _isLadderExtending = true;
+                    _ladderExtendAmount = 0f;
+                }
+            }
+
+            // Update ladder extending animation if active
+            if (_isLadderExtending)
+            {
+                _ladderExtendAmount += _ladderExtendSpeed * delta;
+                if (_ladderExtendAmount >= 1.0f)
+                {
+                    _ladderExtendAmount = 1.0f;
+                    _isLadderExtending = false;
+
+                    // Start rolling head animation when ladder is fully extended
                     if (!_rollingHeadStarted)
                     {
                         _rollingHeadStarted = true;
@@ -815,6 +845,11 @@ namespace Drawing
 
                 case 6: // All giants now begin to close in on the house
                     {
+                        // Make sure ALL giants are visible first
+                        foreach (var giant in _people)
+                        {
+                            giant.SetVisible(true);
+                        }
                         // Move all giants closer to the house in a threatening manner
                         for (int i = 0; i < _people.Count; i++)
                         {
@@ -909,7 +944,15 @@ namespace Drawing
             _showLadder = false;
             _isLadderAnimating = false;
             _ladderOpenAmount = 0f;
+            _isLadderExtending = false;
+            _ladderExtendAmount = 0f;
             _rollingHeadStarted = false;
+
+            // Make sure people list is properly initialized
+            if (_people.Count != PEOPLE_COUNT)
+            {
+                InitializePeople();
+            }
 
             // Reset giants
             foreach (var giant in _people)
