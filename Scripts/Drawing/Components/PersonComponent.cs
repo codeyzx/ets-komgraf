@@ -288,11 +288,20 @@ namespace Drawing.Components
 
             if (!_isRollingHeadZooming)
             {
-                // Roll the head
-                _rollingHeadPosition.X += _rollingHeadSpeed * delta * speedMultiplier;
+                // Calculate the slope of the ladder (approximately 45 degrees or π/4 radians)
+                float ladderAngle = Mathf.Pi / 4; // 45 degrees in radians
+                
+                // Roll the head along the ladder's slope
+                float moveDistance = _rollingHeadSpeed * delta * speedMultiplier;
+                
+                // Update position along the ladder's slope
+                _rollingHeadPosition.X += moveDistance * Mathf.Cos(ladderAngle);
+                _rollingHeadPosition.Y += moveDistance * Mathf.Sin(ladderAngle);
+                
+                // Rotate the head as it rolls
                 _rollingHeadRotation += 5f * delta * speedMultiplier;
 
-                // Check if head reached target position
+                // Check if head reached target position (using X coordinate as threshold)
                 if (_rollingHeadPosition.X >= _rollingHeadTargetX)
                 {
                     _isRollingHeadZooming = true;
