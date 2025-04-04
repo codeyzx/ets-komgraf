@@ -1,4 +1,6 @@
 using System;
+using System.Reflection;
+using Drawing.Components.Characters;
 using Drawing.Configuration;
 using Drawing.Renderers;
 using Godot;
@@ -32,7 +34,9 @@ namespace Scenes
         private Label _rotationSpeedLabel;
         private Label _scaleSpeedLabel;
         private Label _horrorEffectLabel;
+        private Label _ghostScaleLabel;
         private float _horrorEffectIntensity = 1.0f;
+        private float _ghostScale = 1.0f;
 
         // Horror effects
         private ColorRect _darkOverlay;
@@ -194,35 +198,35 @@ namespace Scenes
             // Create animation controls label
             Label controlsLabel = new Label();
             controlsLabel.Text = "Press SPACE to start/restart animation";
-            controlsLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
+            controlsLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.1f, 0.1f));
             controlsLabel.HorizontalAlignment = HorizontalAlignment.Right;
             vbox.AddChild(controlsLabel);
 
+            // Create keyboard controls label
+            Label keyboardControlsLabel = new Label();
+            keyboardControlsLabel.Text = "Keyboard Controls";
+            keyboardControlsLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
+            keyboardControlsLabel.HorizontalAlignment = HorizontalAlignment.Right;
+            vbox.AddChild(keyboardControlsLabel);
+
             // Create animation speed label
             _animationSpeedLabel = new Label();
-            _animationSpeedLabel.Text = "Animation Speed (1-5): 1";
+            _animationSpeedLabel.Text = "Animation Speed (Q/W): 1.0";
             _animationSpeedLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
             _animationSpeedLabel.HorizontalAlignment = HorizontalAlignment.Right;
             vbox.AddChild(_animationSpeedLabel);
 
-            // Create rotation speed label
-            _rotationSpeedLabel = new Label();
-            _rotationSpeedLabel.Text = "Rotation Speed (Q/W): 0";
-            _rotationSpeedLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
-            _rotationSpeedLabel.HorizontalAlignment = HorizontalAlignment.Right;
-            vbox.AddChild(_rotationSpeedLabel);
+            // Create ghost scale label
+            _ghostScaleLabel = new Label();
+            _ghostScaleLabel.Text = "Ghost Scale (D/F): 1.0";
+            _ghostScaleLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
+            _ghostScaleLabel.HorizontalAlignment = HorizontalAlignment.Right;
+            vbox.AddChild(_ghostScaleLabel);
 
-            // Create scale speed label
-            _scaleSpeedLabel = new Label();
-            _scaleSpeedLabel.Text = "Scale Speed (A/S): 0";
-            _scaleSpeedLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
-            _scaleSpeedLabel.HorizontalAlignment = HorizontalAlignment.Right;
-            vbox.AddChild(_scaleSpeedLabel);
-
-            // Create horror effect label
+            // Create darkness effect label
             _horrorEffectLabel = new Label();
-            _horrorEffectLabel.Text = "Horror Effect (Z/X): 1.0";
-            _horrorEffectLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.1f, 0.1f));
+            _horrorEffectLabel.Text = $"Darkness Effect (Z/X): {_horrorEffectIntensity:F1}";
+            _horrorEffectLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
             _horrorEffectLabel.HorizontalAlignment = HorizontalAlignment.Right;
             vbox.AddChild(_horrorEffectLabel);
         }
@@ -279,11 +283,63 @@ namespace Scenes
                 NavigateToWelcomeScene();
             }
 
-            // Only update animation if the building renderer has been initialized
+            // Update the building renderer animation if it exists
             if (_buildingRenderer != null)
             {
                 _buildingRenderer.UpdateAnimation((float)delta);
+
+                // Apply ghost scale
+                ApplyAnimationSettings();
+
+                // Trigger a redraw
                 QueueRedraw();
+            }
+
+            // Update flicker timer if it exists
+            if (_flickerTimer != null && _flickerTimer.IsInsideTree() && !_flickerTimer.IsStopped())
+            {
+                // Ensure the timer is started
+                if (!_flickerTimer.IsStopped())
+                {
+                    _flickerTimer.Paused = false;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Applies animation settings from UI controls to the animation
+        /// </summary>
+        private void ApplyAnimationSettings()
+        {
+            // Apply ghost scale to all people in the scene
+            if (_buildingRenderer != null)
+            {
+                // We'll use reflection to access the private _people field in BuildingRenderer
+                var peopleField = _buildingRenderer
+                    .GetType()
+                    .GetField(
+                        "_people",
+                        System.Reflection.BindingFlags.NonPublic
+                            | System.Reflection.BindingFlags.Instance
+                    );
+
+                if (peopleField != null)
+                {
+                    var people =
+                        peopleField.GetValue(_buildingRenderer)
+                        as System.Collections.Generic.List<Drawing.Components.Characters.PersonComponent>;
+                    if (people != null)
+                    {
+                        // Apply different rotation settings for each ghost
+                        for (int i = 0; i < people.Count; i++)
+                        {
+                            people[i].SetBaseScale(_ghostScale);
+
+                            // Set default rotation behavior for each ghost
+                            people[i].SetRotationBehavior(0, 1.0f + (i * 0.2f));
+                        }
+                    }
+                }
             }
         }
 
@@ -350,77 +406,70 @@ namespace Scenes
                         }
                         break;
 
-                    case Key.Key1:
-                        _buildingRenderer.SetAnimationSpeed(1.0f);
-                        _animationSpeedLabel.Text = "Animation Speed (1-5): 1";
-                        break;
-
-                    case Key.Key2:
-                        _buildingRenderer.SetAnimationSpeed(2.0f);
-                        _animationSpeedLabel.Text = "Animation Speed (1-5): 2";
-                        break;
-
-                    case Key.Key3:
-                        _buildingRenderer.SetAnimationSpeed(3.0f);
-                        _animationSpeedLabel.Text = "Animation Speed (1-5): 3";
-                        break;
-
-                    case Key.Key4:
-                        _buildingRenderer.SetAnimationSpeed(4.0f);
-                        _animationSpeedLabel.Text = "Animation Speed (1-5): 4";
-                        break;
-
-                    case Key.Key5:
-                        _buildingRenderer.SetAnimationSpeed(5.0f);
-                        _animationSpeedLabel.Text = "Animation Speed (1-5): 5";
-                        break;
-
                     case Key.Q:
-                        // Decrease rotation speed
-                        float rotSpeed = 0f;
-                        if (rotSpeed > 0)
-                            rotSpeed -= 0.5f;
-                        _buildingRenderer.SetRotationSpeed(rotSpeed);
-                        _rotationSpeedLabel.Text = $"Rotation Speed (Q/W): {rotSpeed}";
+                        // Decrease animation speed
+                        float animSpeed = Math.Max(
+                            (
+                                _buildingRenderer
+                                    .GetType()
+                                    .GetField(
+                                        "_animationSpeed",
+                                        BindingFlags.NonPublic | BindingFlags.Instance
+                                    )
+                                    .GetValue(_buildingRenderer) as float?
+                                ?? 1.0f
+                            ) - 0.1f,
+                            0.1f
+                        );
+                        _buildingRenderer.SetAnimationSpeed(animSpeed);
+                        _animationSpeedLabel.Text = $"Animation Speed (Q/W): {animSpeed:F1}";
                         break;
 
                     case Key.W:
-                        // Increase rotation speed
-                        rotSpeed = 1.0f;
-                        _buildingRenderer.SetRotationSpeed(rotSpeed);
-                        _rotationSpeedLabel.Text = $"Rotation Speed (Q/W): {rotSpeed}";
-                        break;
-
-                    case Key.A:
-                        // Decrease scale speed
-                        float scaleSpeed = 0f;
-                        if (scaleSpeed > 0)
-                            scaleSpeed -= 0.5f;
-                        _buildingRenderer.SetScaleSpeed(scaleSpeed);
-                        _scaleSpeedLabel.Text = $"Scale Speed (A/S): {scaleSpeed}";
-                        break;
-
-                    case Key.S:
-                        // Increase scale speed
-                        scaleSpeed = 1.0f;
-                        _buildingRenderer.SetScaleSpeed(scaleSpeed);
-                        _scaleSpeedLabel.Text = $"Scale Speed (A/S): {scaleSpeed}";
+                        // Increase animation speed
+                        animSpeed = Math.Min(
+                            (
+                                _buildingRenderer
+                                    .GetType()
+                                    .GetField(
+                                        "_animationSpeed",
+                                        BindingFlags.NonPublic | BindingFlags.Instance
+                                    )
+                                    .GetValue(_buildingRenderer) as float?
+                                ?? 1.0f
+                            ) + 0.1f,
+                            5.0f
+                        );
+                        _buildingRenderer.SetAnimationSpeed(animSpeed);
+                        _animationSpeedLabel.Text = $"Animation Speed (Q/W): {animSpeed:F1}";
                         break;
 
                     case Key.Z:
-                        // Decrease horror effect intensity
+                        // Decrease darkness effect intensity
                         _horrorEffectIntensity = Math.Max(_horrorEffectIntensity - 0.1f, 0f);
                         _horrorEffectLabel.Text =
-                            $"Horror Effect (Z/X): {_horrorEffectIntensity:F1}";
+                            $"Darkness Effect (Z/X): {_horrorEffectIntensity:F1}";
                         UpdateHorrorEffects();
                         break;
 
                     case Key.X:
-                        // Increase horror effect intensity
+                        // Increase darkness effect intensity
                         _horrorEffectIntensity = Math.Min(_horrorEffectIntensity + 0.1f, 2f);
                         _horrorEffectLabel.Text =
-                            $"Horror Effect (Z/X): {_horrorEffectIntensity:F1}";
+                            $"Darkness Effect (Z/X): {_horrorEffectIntensity:F1}";
                         UpdateHorrorEffects();
+                        break;
+
+                    case Key.D:
+                        // Decrease ghost scale
+                        _ghostScale = Math.Max(_ghostScale - 0.1f, 0.5f);
+                        _ghostScaleLabel.Text = $"Ghost Scale (D/F): {_ghostScale:F1}";
+                        break;
+
+                    case Key.F:
+                        // Increase ghost scale
+                        _ghostScale = Math.Min(_ghostScale + 0.1f, 2.0f);
+                        _ghostScaleLabel.Text = $"Ghost Scale (D/F): {_ghostScale:F1}";
                         break;
                 }
             }

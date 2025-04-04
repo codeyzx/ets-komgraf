@@ -23,8 +23,11 @@ namespace Drawing.Components.Characters
         private float _targetRotation = 0f;
         private float _scale = 1f;
         private float _targetScale = 1f;
+        private float _baseScale = 1f; // Base scale that affects overall size
         private bool _isVisible = false;
         private Random _random = new Random();
+        private int _rotationBehaviorType = 0; // 0-Normal, 1-Reverse, 2-Oscillating, 3-Random, 4-Synchronized
+        private float _rotationSpeedModifier = 1.0f; // Speed modifier for rotation
         #endregion
 
         #region Animation Parameters
@@ -190,6 +193,26 @@ namespace Drawing.Components.Characters
         {
             _targetScale = scale;
         }
+
+        /// <summary>
+        /// Sets the base scale for the character, affecting overall size.
+        /// </summary>
+        /// <param name="scale">The base scale to set (0.5 to 2.0 recommended)</param>
+        public void SetBaseScale(float scale)
+        {
+            _baseScale = Math.Clamp(scale, 0.5f, 2.0f);
+        }
+
+        /// <summary>
+        /// Sets the rotation behavior for this ghost character.
+        /// </summary>
+        /// <param name="behaviorType">The type of rotation behavior (0-Normal, 1-Reverse, 2-Oscillating, 3-Random, 4-Synchronized)</param>
+        /// <param name="speedModifier">Speed modifier for the rotation (1.0f is default)</param>
+        public void SetRotationBehavior(int behaviorType, float speedModifier)
+        {
+            _rotationBehaviorType = Math.Clamp(behaviorType, 0, 4);
+            _rotationSpeedModifier = Math.Clamp(speedModifier, 0.5f, 3.0f);
+        }
         #endregion
 
         #region Animation Updates
@@ -210,6 +233,7 @@ namespace Drawing.Components.Characters
         /// </summary>
         private void UpdatePosition(float delta, float speedMultiplier)
         {
+            // Calculate direction to target position
             Vector2 direction = _targetPosition - _position;
             if (direction.Length() > 1f)
             {
@@ -222,10 +246,37 @@ namespace Drawing.Components.Characters
         /// </summary>
         private void UpdateRotation(float delta, float speedMultiplier)
         {
-            float rotationDiff = _targetRotation - _rotation;
-            if (Math.Abs(rotationDiff) > 0.01f)
+            // Apply different rotation behaviors based on the behavior type
+            switch (_rotationBehaviorType)
             {
-                _rotation += rotationDiff * _rotationSpeed * delta * speedMultiplier;
+                case 0: // Normal
+                    _targetRotation = (float)Math.Sin(_floatTime * _rotationSpeedModifier) * 0.15f;
+                    break;
+                case 1: // Reverse
+                    _targetRotation = (float)Math.Sin(-_floatTime * _rotationSpeedModifier) * 0.15f;
+                    break;
+                case 2: // Oscillating
+                    _targetRotation =
+                        (float)Math.Sin(_floatTime * 3f * _rotationSpeedModifier)
+                        * (float)Math.Cos(_floatTime * _rotationSpeedModifier)
+                        * 0.25f;
+                    break;
+                case 3: // Random
+                    if (_random.NextDouble() < 0.01f * _rotationSpeedModifier)
+                    {
+                        _targetRotation = (float)(_random.NextDouble() * 0.4f - 0.2f);
+                    }
+                    break;
+                case 4: // Synchronized
+                    _targetRotation = (float)Math.Sin(_floatTime * 2f) * 0.15f * _rotationSpeedModifier;
+                    break;
+            }
+
+            // Smoothly interpolate current rotation towards target rotation
+            float diff = _targetRotation - _rotation;
+            if (Math.Abs(diff) > 0.001f)
+            {
+                _rotation += diff * speedMultiplier * delta;
             }
         }
 
@@ -342,18 +393,16 @@ namespace Drawing.Components.Characters
                 // Occasionally skip rendering for flickering effect
                 return;
             }
-
-            // Calculate floating effect for creepy movement
             float floatY = (float)Math.Sin(_floatTime) * _floatAmplitude;
 
             // Apply distortion for more horror
             float distortedScale = _scale * (1f + (float)Math.Sin(_distortionAmount) * 0.1f);
 
-            // Apply scale and rotation transformations
+            // Apply position, rotation, and scale transformations with base scale
             Canvas.DrawSetTransform(
                 _position + new Vector2(0, floatY),
                 _rotation,
-                new Vector2(distortedScale, distortedScale)
+                new Vector2(distortedScale * _baseScale, distortedScale * _baseScale)
             );
 
             // Draw the giant humanoid figure

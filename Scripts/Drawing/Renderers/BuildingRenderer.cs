@@ -37,6 +37,7 @@ namespace Drawing.Renderers
         private float _scaleSpeed = 0f;
         private bool _animationEnabled = false;
         private int _animationStage = 0;
+        private int _rotationType = 0; // 0: Normal, 1: Reverse, 2: Oscillating
 
         // Horror effects
         private float _flickerEffect = 0f;
@@ -926,9 +927,41 @@ namespace Drawing.Renderers
                                 (float)Math.Sin(_animationTime * 2 + i) * 0.1f + 1.0f;
                             _people[i].SetTargetScale(scaleOffset);
 
-                            // Slight rotation for swaying effect
-                            float rotationOffset =
-                                (float)Math.Sin(_animationTime * 1.5f + i * 0.5f) * 0.15f;
+                            // Apply rotation based on rotation type
+                            float rotationOffset = 0f;
+                            switch (_rotationType)
+                            {
+                                case 0: // Normal
+                                    rotationOffset =
+                                        (float)Math.Sin(_animationTime * 1.5f + i * 0.5f) * 0.15f;
+                                    break;
+                                case 1: // Reverse
+                                    rotationOffset =
+                                        (float)Math.Sin(-_animationTime * 1.5f + i * 0.5f) * 0.15f;
+                                    break;
+                                case 2: // Oscillating
+                                    rotationOffset =
+                                        (float)Math.Sin(_animationTime * 3f)
+                                        * (float)Math.Cos(i + _animationTime)
+                                        * 0.25f;
+                                    break;
+                                case 3: // Random
+                                    rotationOffset =
+                                        (float)Math.Sin(_animationTime * (1.0f + i * 0.3f)) * 0.2f;
+                                    if (_random.NextDouble() < 0.01f)
+                                    {
+                                        rotationOffset = (float)(
+                                            _random.NextDouble() * 0.4f - 0.2f
+                                        );
+                                    }
+                                    break;
+                                case 4: // Synchronized
+                                    rotationOffset =
+                                        (float)Math.Sin(_animationTime * 2f)
+                                        * 0.15f
+                                        * (1.0f + i * 0.1f);
+                                    break;
+                            }
                             _people[i].SetTargetRotation(rotationOffset);
                         }
                     }
@@ -995,6 +1028,24 @@ namespace Drawing.Renderers
         public void ShowLadder(bool show)
         {
             _showLadder = show;
+        }
+
+        /// <summary>
+        /// Gets the list of people (ghost characters) in the scene.
+        /// </summary>
+        /// <returns>List of PersonComponent objects.</returns>
+        public List<PersonComponent> GetPeople()
+        {
+            return _people;
+        }
+
+        /// <summary>
+        /// Sets the rotation type for animations.
+        /// </summary>
+        /// <param name="type">Rotation type: 0-Normal, 1-Reverse, 2-Oscillating, 3-Random, 4-Synchronized</param>
+        public void SetRotationType(int type)
+        {
+            _rotationType = Math.Clamp(type, 0, 4);
         }
     }
 }
