@@ -38,7 +38,7 @@ namespace UI
         private Random _random = new Random();
 
         // Show Begu Ganjang intro scene first
-        private BeguGanjangIntroScene _introScene;
+        private IntroScene _introScene;
 
         /// <summary>
         /// Called when the node enters the scene tree for the first time.
@@ -48,7 +48,7 @@ namespace UI
             base._Ready();
 
             // Create and show the intro scene
-            _introScene = new BeguGanjangIntroScene();
+            _introScene = new IntroScene();
             AddChild(_introScene);
 
             // Connect to the intro scene's completion signal
@@ -88,10 +88,16 @@ namespace UI
             _darkOverlay = new ColorRect();
             _darkOverlay.AnchorRight = 1;
             _darkOverlay.AnchorBottom = 1;
+            _darkOverlay.AnchorLeft = 0;
+            _darkOverlay.AnchorTop = 0;
+
+            // Set the size after the node is added to the scene tree
+            CallDeferred(Node.MethodName.AddChild, _darkOverlay);
+            CallDeferred("SetOverlaySize");
+
             _darkOverlay.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             _darkOverlay.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
             _darkOverlay.Color = new Color(0, 0, 0, 0.3f);
-            AddChild(_darkOverlay);
 
             // Create flicker timer
             _flickerTimer = new Timer();
@@ -99,33 +105,18 @@ namespace UI
             _flickerTimer.Autostart = false;
             _flickerTimer.OneShot = true;
             _flickerTimer.Timeout += OnFlickerTimeout;
-            AddChild(_flickerTimer);
+            CallDeferred(Node.MethodName.AddChild, _flickerTimer);
         }
 
         /// <summary>
-        /// Handles the flicker effect timeout
+        /// Sets the size of the dark overlay after it has been added to the scene tree
         /// </summary>
-        private void OnFlickerTimeout()
+        private void SetOverlaySize()
         {
-            if (_random.NextDouble() < 0.3f * _horrorEffectIntensity)
+            if (_darkOverlay != null && _darkOverlay.IsInsideTree())
             {
-                // Create a brief flicker
-                _darkOverlay.Color = new Color(
-                    0,
-                    0,
-                    0,
-                    0.3f + (float)_random.NextDouble() * 0.3f * _horrorEffectIntensity
-                );
-                _flickerTimer.WaitTime = 0.05f + (float)_random.NextDouble() * 0.1f;
+                _darkOverlay.SetDeferred("size", GetViewportRect().Size);
             }
-            else
-            {
-                // Reset flicker
-                _darkOverlay.Color = new Color(0, 0, 0, 0.3f);
-                _flickerTimer.WaitTime = 0.5f + (float)_random.NextDouble() * 2.0f;
-            }
-
-            _flickerTimer.Start();
         }
 
         /// <summary>
@@ -140,7 +131,10 @@ namespace UI
             vbox.AnchorLeft = 0;
             vbox.AnchorRight = 0;
             vbox.Position = new Vector2(10, 10);
-            AddChild(vbox);
+
+            // Add the container first, then set its size
+            CallDeferred(Node.MethodName.AddChild, vbox);
+            CallDeferred("SetVBoxSize", vbox);
 
             // Create title label
             Label titleLabel = new Label();
@@ -180,11 +174,52 @@ namespace UI
         }
 
         /// <summary>
+        /// Sets the size of the VBoxContainer after it has been added to the scene tree
+        /// </summary>
+        private void SetVBoxSize(VBoxContainer vbox)
+        {
+            if (vbox != null && vbox.IsInsideTree())
+            {
+                vbox.SetDeferred("size", new Vector2(300, GetViewportRect().Size.Y - 20));
+            }
+        }
+
+        /// <summary>
+        /// Handles the flicker effect timeout
+        /// </summary>
+        private void OnFlickerTimeout()
+        {
+            if (_random.NextDouble() < 0.3f * _horrorEffectIntensity)
+            {
+                // Create a brief flicker
+                _darkOverlay.Color = new Color(
+                    0,
+                    0,
+                    0,
+                    0.3f + (float)_random.NextDouble() * 0.3f * _horrorEffectIntensity
+                );
+                _flickerTimer.WaitTime = 0.05f + (float)_random.NextDouble() * 0.1f;
+            }
+            else
+            {
+                // Reset flicker
+                _darkOverlay.Color = new Color(0, 0, 0, 0.3f);
+                _flickerTimer.WaitTime = 0.5f + (float)_random.NextDouble() * 2.0f;
+            }
+
+            _flickerTimer.Start();
+        }
+
+        /// <summary>
         /// Handles input events.
         /// </summary>
         /// <param name="event">The input event.</param>
         public override void _Input(InputEvent @event)
         {
+            // Skip input handling if building renderer is not initialized
+            if (_buildingRenderer == null)
+                return;
+
             if (@event is InputEventKey keyEvent && keyEvent.Pressed)
             {
                 switch (keyEvent.Keycode)
@@ -193,8 +228,16 @@ namespace UI
                         // Start/restart animation
                         _buildingRenderer.StartAnimation();
 
-                        // Start flicker effect
-                        _flickerTimer.Start();
+                        // Start flicker effect if timer is in the scene tree
+                        if (_flickerTimer.IsInsideTree())
+                        {
+                            _flickerTimer.Start();
+                        }
+                        else
+                        {
+                            // If timer is not yet in the scene tree, defer the start
+                            CallDeferred("StartFlickerTimer");
+                        }
                         break;
 
                     case Key.Key1:
@@ -203,67 +246,84 @@ namespace UI
                         break;
 
                     case Key.Key2:
-                        _buildingRenderer.SetAnimationSpeed(1.5f);
+                        _buildingRenderer.SetAnimationSpeed(2.0f);
                         _animationSpeedLabel.Text = "Animation Speed (1-5): 2";
                         break;
 
                     case Key.Key3:
-                        _buildingRenderer.SetAnimationSpeed(2.0f);
+                        _buildingRenderer.SetAnimationSpeed(3.0f);
                         _animationSpeedLabel.Text = "Animation Speed (1-5): 3";
                         break;
 
                     case Key.Key4:
-                        _buildingRenderer.SetAnimationSpeed(2.5f);
+                        _buildingRenderer.SetAnimationSpeed(4.0f);
                         _animationSpeedLabel.Text = "Animation Speed (1-5): 4";
                         break;
 
                     case Key.Key5:
-                        _buildingRenderer.SetAnimationSpeed(3.0f);
+                        _buildingRenderer.SetAnimationSpeed(5.0f);
                         _animationSpeedLabel.Text = "Animation Speed (1-5): 5";
                         break;
 
                     case Key.Q:
-                        // Decrease rotation speed by 0.5
-                        float rotationSpeed = 0.5f;
-                        _buildingRenderer.SetRotationSpeed(rotationSpeed);
-                        _rotationSpeedLabel.Text = $"Rotation Speed (Q/W): {rotationSpeed}";
+                        // Decrease rotation speed
+                        float rotSpeed = 0f;
+                        if (rotSpeed > 0)
+                            rotSpeed -= 0.5f;
+                        _buildingRenderer.SetRotationSpeed(rotSpeed);
+                        _rotationSpeedLabel.Text = $"Rotation Speed (Q/W): {rotSpeed}";
                         break;
 
                     case Key.W:
-                        // Increase rotation speed by 0.5
-                        rotationSpeed = 1.0f;
-                        _buildingRenderer.SetRotationSpeed(rotationSpeed);
-                        _rotationSpeedLabel.Text = $"Rotation Speed (Q/W): {rotationSpeed}";
+                        // Increase rotation speed
+                        rotSpeed = 1.0f;
+                        _buildingRenderer.SetRotationSpeed(rotSpeed);
+                        _rotationSpeedLabel.Text = $"Rotation Speed (Q/W): {rotSpeed}";
                         break;
 
                     case Key.A:
-                        // Decrease scale speed by 0.5
-                        float scaleSpeed = 0.5f;
+                        // Decrease scale speed
+                        float scaleSpeed = 0f;
+                        if (scaleSpeed > 0)
+                            scaleSpeed -= 0.5f;
                         _buildingRenderer.SetScaleSpeed(scaleSpeed);
                         _scaleSpeedLabel.Text = $"Scale Speed (A/S): {scaleSpeed}";
                         break;
 
                     case Key.S:
-                        // Increase scale speed by 0.5
+                        // Increase scale speed
                         scaleSpeed = 1.0f;
                         _buildingRenderer.SetScaleSpeed(scaleSpeed);
                         _scaleSpeedLabel.Text = $"Scale Speed (A/S): {scaleSpeed}";
                         break;
 
                     case Key.Z:
-                        _horrorEffectIntensity = Math.Max(0, _horrorEffectIntensity - 0.1f);
+                        // Decrease horror effect intensity
+                        _horrorEffectIntensity = Math.Max(_horrorEffectIntensity - 0.1f, 0f);
                         _horrorEffectLabel.Text =
                             $"Horror Effect (Z/X): {_horrorEffectIntensity:F1}";
                         UpdateHorrorEffects();
                         break;
 
                     case Key.X:
-                        _horrorEffectIntensity = Math.Min(2.0f, _horrorEffectIntensity + 0.1f);
+                        // Increase horror effect intensity
+                        _horrorEffectIntensity = Math.Min(_horrorEffectIntensity + 0.1f, 2f);
                         _horrorEffectLabel.Text =
                             $"Horror Effect (Z/X): {_horrorEffectIntensity:F1}";
                         UpdateHorrorEffects();
                         break;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Starts the flicker timer after it has been added to the scene tree
+        /// </summary>
+        private void StartFlickerTimer()
+        {
+            if (_flickerTimer.IsInsideTree())
+            {
+                _flickerTimer.Start();
             }
         }
 
@@ -282,8 +342,12 @@ namespace UI
         /// <param name="delta">Time elapsed since the last frame.</param>
         public override void _Process(double delta)
         {
-            _buildingRenderer.UpdateAnimation((float)delta);
-            QueueRedraw();
+            // Only update animation if the building renderer has been initialized
+            if (_buildingRenderer != null)
+            {
+                _buildingRenderer.UpdateAnimation((float)delta);
+                QueueRedraw();
+            }
         }
 
         /// <summary>
@@ -291,7 +355,11 @@ namespace UI
         /// </summary>
         public override void _Draw()
         {
-            _buildingRenderer.Draw();
+            // Only draw if the building renderer has been initialized
+            if (_buildingRenderer != null)
+            {
+                _buildingRenderer.Draw();
+            }
         }
 
         /// <summary>

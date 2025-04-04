@@ -207,9 +207,9 @@ namespace Drawing
             for (int i = 0; i < PEOPLE_COUNT; i++)
             {
                 // Start positions around the house perimeter for more threatening appearance
-                // Some will be behind, some to the sides, creating a surrounded feeling
-                float angle = i * (Mathf.Tau / PEOPLE_COUNT);
-                float distance = 300 * _scaleFactor + _random.Next(0, 100) * _scaleFactor;
+                // Spread ghosts more widely around the house with varied distances
+                float angle = i * (Mathf.Tau / PEOPLE_COUNT) + (float)_random.NextDouble() * 0.5f;
+                float distance = 300 * _scaleFactor + _random.Next(100, 300) * _scaleFactor;
 
                 Vector2 startPosition = new Vector2(
                     _dimensions.Center.X + (float)Math.Cos(angle) * distance,
@@ -219,16 +219,25 @@ namespace Drawing
                 // Create giant humanoid component with blood-red or dark color variations
                 Color primaryColor;
 
-                // Alternate between dark and blood colors for variety
-                if (i % 2 == 0)
+                // More varied colors for ghosts
+                switch (i % 4)
                 {
-                    // Blood red for some giants
-                    primaryColor = new Color(0.7f, 0.1f, 0.1f, 0.9f);
-                }
-                else
-                {
-                    // Dark shadowy color for others
-                    primaryColor = new Color(0.1f, 0.1f, 0.15f, 0.9f);
+                    case 0:
+                        // Blood red
+                        primaryColor = new Color(0.7f, 0.1f, 0.1f, 0.9f);
+                        break;
+                    case 1:
+                        // Dark shadowy
+                        primaryColor = new Color(0.1f, 0.1f, 0.15f, 0.9f);
+                        break;
+                    case 2:
+                        // Pale ghostly
+                        primaryColor = new Color(0.5f, 0.5f, 0.6f, 0.8f);
+                        break;
+                    default:
+                        // Dark reddish-brown
+                        primaryColor = new Color(0.3f, 0.1f, 0.05f, 0.9f);
+                        break;
                 }
 
                 PersonComponent giant = new PersonComponent(
@@ -243,11 +252,11 @@ namespace Drawing
                 );
 
                 // Set initial scale based on position - further ones appear larger for depth effect
-                float initialScale = 1.0f + (float)_random.NextDouble() * 0.5f;
+                float initialScale = 0.8f + (float)_random.NextDouble() * 1.0f;
                 giant.SetTargetScale(initialScale);
 
                 // Set initial rotation for variety
-                giant.SetTargetRotation((float)_random.NextDouble() * 0.2f - 0.1f);
+                giant.SetTargetRotation((float)_random.NextDouble() * 0.4f - 0.2f);
 
                 _people.Add(giant);
             }
