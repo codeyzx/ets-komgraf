@@ -18,10 +18,13 @@ namespace UI
         private BuildingConfiguration _config = new BuildingConfiguration
         {
             PrimaryColor = new Color(0.3f, 0.3f, 0.35f), // Darker color for horror theme
+            SecondaryColor = new Color(0.2f, 0.2f, 0.25f), // Darker secondary color
             OutlineColor = new Color(0.1f, 0.1f, 0.1f),
-            OutlineThickness = 2f,
-            WindowLineCount = 3,
-            RoofSegments = 10,
+            OutlineThickness = 4f, // Increased from 2f to 4f to match Karya2
+            WindowLineCount = 7, // Changed from 3 to 7 to match Karya2
+            RoofSegments = 30, // Changed from 10 to 30 to match Karya2
+            PanelCount = 8, // Added to match Karya2
+            ColumnCount = 9, // Added to match Karya2
             LadderLength = 80,
         };
 
