@@ -56,6 +56,9 @@ namespace UI
 
             // Connect to the intro scene's completion signal
             _introScene.TreeExiting += OnIntroCompleted;
+
+            // Set input as handled to ensure we receive input events
+            SetProcessInput(true);
         }
 
         private void OnIntroCompleted()
@@ -80,6 +83,49 @@ namespace UI
 
             // Create horror effects
             CreateHorrorEffects();
+
+            // Ensure the back button remains accessible by bringing it to the front
+            EnsureBackButtonAccessibility();
+        }
+
+        /// <summary>
+        /// Ensures the back button remains accessible by bringing it to the front
+        /// </summary>
+        private void EnsureBackButtonAccessibility()
+        {
+            // Find the Control node containing the back button
+            var controlNode = GetNode<Control>("Control");
+            if (controlNode != null)
+            {
+                // Remove the existing button if it exists
+                var existingButton = controlNode.GetNode<Button>("Button");
+                if (existingButton != null)
+                {
+                    existingButton.QueueFree();
+                }
+
+                // Create a completely new button
+                Button newBackButton = new Button();
+                newBackButton.Name = "NewBackButton";
+                newBackButton.Text = "Back";
+                newBackButton.Position = new Vector2(0, 0);
+                newBackButton.Size = new Vector2(80, 30);
+                newBackButton.ZIndex = 2000;
+
+                // Style the button to make it stand out
+                newBackButton.AddThemeColorOverride("font_color", new Color(1, 1, 1));
+                newBackButton.AddThemeColorOverride("font_hover_color", new Color(1, 0.5f, 0.5f));
+                newBackButton.AddThemeColorOverride("font_focus_color", new Color(1, 0.7f, 0.7f));
+                newBackButton.AddThemeColorOverride("font_pressed_color", new Color(1, 0, 0));
+                newBackButton.AddThemeColorOverride("bg_color", new Color(0.5f, 0.1f, 0.1f));
+                newBackButton.AddThemeColorOverride("bg_hover_color", new Color(0.7f, 0.2f, 0.2f));
+
+                // Connect the pressed signal directly to our navigation method
+                newBackButton.Connect("pressed", Callable.From(() => NavigateToWelcomeScene()));
+
+                // Add the new button to the control node
+                controlNode.AddChild(newBackButton);
+            }
         }
 
         /// <summary>
@@ -220,17 +266,73 @@ namespace UI
         }
 
         /// <summary>
-        /// Handles input events.
+        /// Called every frame.
         /// </summary>
-        /// <param name="event">The input event.</param>
+        /// <param name="delta">Time elapsed since the last frame.</param>
+        public override void _Process(double delta)
+        {
+            base._Process(delta);
+
+            // Check for keyboard input to navigate back (Escape key)
+            if (Input.IsActionJustPressed("ui_cancel"))
+            {
+                GD.Print("Escape key pressed, navigating to Welcome scene");
+                NavigateToWelcomeScene();
+            }
+
+            // Only update animation if the building renderer has been initialized
+            if (_buildingRenderer != null)
+            {
+                _buildingRenderer.UpdateAnimation((float)delta);
+                QueueRedraw();
+            }
+        }
+
+        /// <summary>
+        /// Handles input events directly.
+        /// </summary>
         public override void _Input(InputEvent @event)
         {
-            // Skip input handling if building renderer is not initialized
-            if (_buildingRenderer == null)
+            // Skip if not ready or if event is null
+            if (@event == null || !IsInsideTree())
+            {
                 return;
+            }
+            
+            base._Input(@event);
 
+            // Check for mouse clicks in the back button area (top-left corner)
+            if (
+                @event is InputEventMouseButton mouseEvent
+                && mouseEvent.ButtonIndex == MouseButton.Left
+                && mouseEvent.Pressed
+            )
+            {
+                // Define the back button area (top-left corner)
+                Rect2 backButtonArea = new Rect2(0, 0, 100, 50);
+
+                // Check if the click is within the back button area
+                if (backButtonArea.HasPoint(mouseEvent.Position))
+                {
+                    GD.Print("Back button area clicked at " + mouseEvent.Position);
+                    NavigateToWelcomeScene();
+
+                    // Mark the event as handled - with null check
+                    var viewport = GetViewport();
+                    if (viewport != null)
+                    {
+                        viewport.SetInputAsHandled();
+                    }
+                }
+            }
+            
+            // Handle animation control keys
             if (@event is InputEventKey keyEvent && keyEvent.Pressed)
             {
+                // Skip key handling if building renderer is not initialized
+                if (_buildingRenderer == null)
+                    return;
+                    
                 switch (keyEvent.Keycode)
                 {
                     case Key.Space:
@@ -309,19 +411,41 @@ namespace UI
                     case Key.Z:
                         // Decrease horror effect intensity
                         _horrorEffectIntensity = Math.Max(_horrorEffectIntensity - 0.1f, 0f);
-                        _horrorEffectLabel.Text =
-                            $"Horror Effect (Z/X): {_horrorEffectIntensity:F1}";
+                        _horrorEffectLabel.Text = $"Horror Effect (Z/X): {_horrorEffectIntensity:F1}";
                         UpdateHorrorEffects();
                         break;
 
                     case Key.X:
                         // Increase horror effect intensity
                         _horrorEffectIntensity = Math.Min(_horrorEffectIntensity + 0.1f, 2f);
-                        _horrorEffectLabel.Text =
-                            $"Horror Effect (Z/X): {_horrorEffectIntensity:F1}";
+                        _horrorEffectLabel.Text = $"Horror Effect (Z/X): {_horrorEffectIntensity:F1}";
                         UpdateHorrorEffects();
                         break;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Called when the node needs to be redrawn.
+        /// </summary>
+        public override void _Draw()
+        {
+            // Draw the building if the renderer has been initialized
+            if (_buildingRenderer != null)
+            {
+                _buildingRenderer.Draw();
+            }
+        }
+
+        /// <summary>
+        /// Navigates back to the Welcome scene
+        /// </summary>
+        private void NavigateToWelcomeScene()
+        {
+            string scenePath = "res://Scenes/UI/Welcome.tscn";
+            if (GetTree().ChangeSceneToFile(scenePath) != Error.Ok)
+            {
+                GD.PrintErr($"Failed to load scene: {scenePath}");
             }
         }
 
@@ -343,32 +467,6 @@ namespace UI
         {
             // Update overlay darkness
             _darkOverlay.Color = new Color(0, 0, 0, 0.3f * _horrorEffectIntensity);
-        }
-
-        /// <summary>
-        /// Called every frame.
-        /// </summary>
-        /// <param name="delta">Time elapsed since the last frame.</param>
-        public override void _Process(double delta)
-        {
-            // Only update animation if the building renderer has been initialized
-            if (_buildingRenderer != null)
-            {
-                _buildingRenderer.UpdateAnimation((float)delta);
-                QueueRedraw();
-            }
-        }
-
-        /// <summary>
-        /// Called when the node needs to be redrawn.
-        /// </summary>
-        public override void _Draw()
-        {
-            // Only draw if the building renderer has been initialized
-            if (_buildingRenderer != null)
-            {
-                _buildingRenderer.Draw();
-            }
         }
 
         /// <summary>
