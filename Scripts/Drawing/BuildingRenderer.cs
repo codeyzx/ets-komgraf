@@ -206,15 +206,48 @@ namespace Drawing
             // Create giant, terrifying humanoid figures around the house
             for (int i = 0; i < PEOPLE_COUNT; i++)
             {
-                // Start positions around the house perimeter for more threatening appearance
-                // Spread ghosts more widely around the house with varied distances
-                float angle = i * (Mathf.Tau / PEOPLE_COUNT) + (float)_random.NextDouble() * 0.5f;
-                float distance = 300 * _scaleFactor + _random.Next(100, 300) * _scaleFactor;
+                // Position ghosts in specific cardinal directions: left, right, top, bottom, and center
+                // Use much larger distances to spread them far apart
+                Vector2 startPosition;
+                float baseDistance = 600 * _scaleFactor; // Adjusted distance from center
+                float sideOffset = 200 * _scaleFactor; // Offset for side positions
 
-                Vector2 startPosition = new Vector2(
-                    _dimensions.Center.X + (float)Math.Cos(angle) * distance,
-                    _dimensions.Center.Y + (float)Math.Sin(angle) * distance
-                );
+                switch (i)
+                {
+                    case 0: // Left
+                        startPosition = new Vector2(
+                            _dimensions.HousePosition.X - baseDistance,
+                            _dimensions.Center.Y
+                        );
+                        break;
+                    case 1: // Right
+                        startPosition = new Vector2(
+                            _dimensions.HousePosition.X + _dimensions.HouseWidth + baseDistance,
+                            _dimensions.Center.Y
+                        );
+                        break;
+                    case 2: // Top
+                        startPosition = new Vector2(
+                            _dimensions.Center.X,
+                            _dimensions.RoofBaseY + _dimensions.WallHeight + baseDistance * 0.5f // Moved lower
+                        );
+                        break;
+                    case 3: // Bottom
+                        startPosition = new Vector2(
+                            _dimensions.Center.X,
+                            _dimensions.RoofBaseY + _dimensions.WallHeight + baseDistance
+                        );
+                        break;
+                    case 4: // Center (slightly offset)
+                        startPosition = new Vector2(
+                            _dimensions.Center.X,
+                            _dimensions.Center.Y - sideOffset
+                        );
+                        break;
+                    default:
+                        startPosition = _dimensions.Center;
+                        break;
+                }
 
                 // Create giant humanoid component with blood-red or dark color variations
                 Color primaryColor;
@@ -470,16 +503,53 @@ namespace Drawing
                             giant.SetVisible(true);
                         }
 
-                        // Position giants around the house
+                        // Position giants around the house - still far apart but closer than initial positions
                         for (int i = 0; i < _people.Count; i++)
                         {
-                            float angle = i * (Mathf.Tau / _people.Count);
-                            float distance = 200 * _scaleFactor;
+                            Vector2 targetPos;
+                            float baseDistance = 500 * _scaleFactor; // Still keep them far apart
+                            float sideOffset = 200 * _scaleFactor; // Offset for side positions
 
-                            Vector2 targetPos = new Vector2(
-                                _dimensions.Center.X + (float)Math.Cos(angle) * distance,
-                                _dimensions.Center.Y + (float)Math.Sin(angle) * distance * 0.5f
-                            );
+                            switch (i)
+                            {
+                                case 0: // Far Left
+                                    targetPos = new Vector2(
+                                        _dimensions.HousePosition.X - baseDistance,
+                                        _dimensions.Center.Y
+                                    );
+                                    break;
+                                case 1: // Far Right
+                                    targetPos = new Vector2(
+                                        _dimensions.HousePosition.X
+                                            + _dimensions.HouseWidth
+                                            + baseDistance,
+                                        _dimensions.Center.Y
+                                    );
+                                    break;
+                                case 2: // Far Top (now positioned lower)
+                                    targetPos = new Vector2(
+                                        _dimensions.Center.X,
+                                        _dimensions.RoofBaseY + _dimensions.WallHeight + baseDistance * 0.3f // Moved lower
+                                    );
+                                    break;
+                                case 3: // Far Bottom
+                                    targetPos = new Vector2(
+                                        _dimensions.Center.X,
+                                        _dimensions.RoofBaseY
+                                            + _dimensions.WallHeight
+                                            + baseDistance
+                                    );
+                                    break;
+                                case 4: // Center (slightly offset)
+                                    targetPos = new Vector2(
+                                        _dimensions.Center.X,
+                                        _dimensions.Center.Y - sideOffset
+                                    );
+                                    break;
+                                default:
+                                    targetPos = _dimensions.Center;
+                                    break;
+                            }
 
                             _people[i].SetTargetPosition(targetPos);
                         }
@@ -597,15 +667,52 @@ namespace Drawing
                         // Move all giants closer to the house in a threatening manner
                         for (int i = 0; i < _people.Count; i++)
                         {
-                            // Calculate position closer to the house
-                            float angle = i * (Mathf.Tau / _people.Count);
-                            float distance = 150 * _scaleFactor * (1.0f - _animationTime * 0.1f);
-                            distance = Math.Max(distance, 100 * _scaleFactor); // Don't get too close
+                            // Calculate position closer to the house but still maintaining distance
+                            Vector2 targetPos;
+                            float baseDistance =
+                                300 * _scaleFactor * (1.0f - _animationTime * 0.1f);
+                            baseDistance = Math.Max(baseDistance, 200 * _scaleFactor); // Keep a good distance
 
-                            Vector2 targetPos = new Vector2(
-                                _dimensions.Center.X + (float)Math.Cos(angle) * distance,
-                                _dimensions.Center.Y + (float)Math.Sin(angle) * distance * 0.5f
-                            );
+                            switch (i)
+                            {
+                                case 0: // Left
+                                    targetPos = new Vector2(
+                                        _dimensions.HousePosition.X - baseDistance,
+                                        _dimensions.Center.Y
+                                    );
+                                    break;
+                                case 1: // Right
+                                    targetPos = new Vector2(
+                                        _dimensions.HousePosition.X
+                                            + _dimensions.HouseWidth
+                                            + baseDistance,
+                                        _dimensions.Center.Y
+                                    );
+                                    break;
+                                case 2: // Top (now positioned lower)
+                                    targetPos = new Vector2(
+                                        _dimensions.Center.X,
+                                        _dimensions.RoofBaseY + _dimensions.WallHeight + baseDistance * 0.2f // Moved lower
+                                    );
+                                    break;
+                                case 3: // Bottom
+                                    targetPos = new Vector2(
+                                        _dimensions.Center.X,
+                                        _dimensions.RoofBaseY
+                                            + _dimensions.WallHeight
+                                            + baseDistance
+                                    );
+                                    break;
+                                case 4: // Center (slightly offset)
+                                    targetPos = new Vector2(
+                                        _dimensions.Center.X,
+                                        _dimensions.Center.Y - baseDistance * 0.5f
+                                    );
+                                    break;
+                                default:
+                                    targetPos = _dimensions.Center;
+                                    break;
+                            }
 
                             _people[i].SetTargetPosition(targetPos);
                         }

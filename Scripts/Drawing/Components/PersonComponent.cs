@@ -74,7 +74,7 @@ namespace Drawing.Components
 
         #region Spawning Parameters
         private float _ghostSpreadFactor = 150f;
-        private bool _useRandomSpawning = true;
+        private bool _useRandomSpawning = false;
         private float _verticalSpreadVariance = 100f;
         #endregion
 
