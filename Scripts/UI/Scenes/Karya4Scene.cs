@@ -1,15 +1,14 @@
 using System;
-using Core;
-using Drawing;
+using Drawing.Configuration;
+using Drawing.Renderers;
 using Godot;
-using Karya3.Scripts.UI;
 
-namespace UI
+namespace Scenes
 {
     /// <summary>
     /// Represents the Karya3 scene, which displays a traditional building with horror elements.
     /// </summary>
-    public partial class Karya4 : Node2D
+    public partial class Karya4Scene : Node2D
     {
         // Building renderer
         private BuildingRenderer _buildingRenderer;

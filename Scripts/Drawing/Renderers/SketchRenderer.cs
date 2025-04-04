@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using Core;
+using Drawing.Configuration;
 using Godot;
 
-namespace Drawing
+namespace Drawing.Renderers
 {
     /// <summary>
     /// Renders a sketch of a traditional Bolon house using only line primitives.

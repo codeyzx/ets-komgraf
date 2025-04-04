@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using Core;
+using Drawing.Configuration;
 using Godot;
 
-namespace Drawing.Components
+namespace Drawing.Components.Building
 {
     /// <summary>
     /// Component for drawing the roof of a building.
@@ -28,7 +29,9 @@ namespace Drawing.Components
             Color outlineColor,
             float roofHeight,
             float outlineThickness,
-            int roofSegments) : base(canvas, primitif, dimensions, scaleFactor)
+            int roofSegments
+        )
+            : base(canvas, primitif, dimensions, scaleFactor)
         {
             _primaryColor = primaryColor;
             _outlineColor = outlineColor;

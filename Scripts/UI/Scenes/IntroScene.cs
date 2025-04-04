@@ -1,10 +1,7 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Godot;
 
-namespace Karya3.Scripts.UI
+namespace Scenes
 {
     /// <summary>
     /// A horror opening scene featuring the Batak mythology of Begu Ganjang.
@@ -309,7 +306,7 @@ namespace Karya3.Scripts.UI
 
             // Disable advancement until next frame is ready
             _canAdvance = false;
-            
+
             _currentFrame++;
 
             if (_currentFrame < _storyFrames.Length)

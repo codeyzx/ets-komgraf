@@ -1,15 +1,13 @@
-using System;
-using System.Collections.Generic;
-using Core;
-using Drawing;
+using Drawing.Configuration;
+using Drawing.Renderers;
 using Godot;
 
-namespace UI
+namespace Scenes
 {
     /// <summary>
     /// Renders a sketch of a traditional Bolon house structure using only line primitives.
     /// </summary>
-    public partial class Karya1 : Node2D
+    public partial class Karya1Scene : Node2D
     {
         // Building renderer and configuration
         private SketchRenderer _sketchRenderer;
@@ -64,10 +62,10 @@ namespace UI
         {
             // Update configuration from exported properties
             UpdateConfiguration();
-            
+
             // Initialize the sketch renderer
             _sketchRenderer = new SketchRenderer(this, _config);
-            
+
             // Force a redraw to render the sketch
             QueueRedraw();
         }
@@ -99,7 +97,7 @@ namespace UI
         {
             // Initialize drawing parameters based on the current viewport size
             _sketchRenderer.InitializeDrawingParameters(GetViewportRect().Size);
-            
+
             // Draw the building sketch with all its components
             _sketchRenderer.Draw();
         }
@@ -110,7 +108,7 @@ namespace UI
         public override void _Notification(int what)
         {
             base._Notification(what);
-            
+
             // Check if the notification is for a resize
             if (what == NotificationWMSizeChanged)
             {

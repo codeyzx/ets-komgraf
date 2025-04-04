@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using Core;
+using Drawing.Components.Building;
+using Drawing.Configuration;
 using Godot;
 
-namespace Drawing.Components
+namespace Drawing.Components.Structures
 {
     /// <summary>
     /// Component for drawing the ladder on the right side of the building.

@@ -1,9 +1,8 @@
-using System;
 using Godot;
 
-namespace UI
+namespace Scenes
 {
-    public partial class About : Control
+    public partial class AboutScene : Control
     {
         public override void _Ready() { }
 

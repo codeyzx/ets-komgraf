@@ -1,8 +1,8 @@
-using System.Collections.Generic;
 using Core;
+using Drawing.Configuration;
 using Godot;
 
-namespace Drawing.Components
+namespace Drawing.Components.Building
 {
     /// <summary>
     /// Component for drawing the main house body.
@@ -25,7 +25,9 @@ namespace Drawing.Components
             Color primaryColor,
             Color outlineColor,
             float outlineThickness,
-            int windowLineCount) : base(canvas, primitif, dimensions, scaleFactor)
+            int windowLineCount
+        )
+            : base(canvas, primitif, dimensions, scaleFactor)
         {
             _primaryColor = primaryColor;
             _outlineColor = outlineColor;
@@ -64,10 +66,7 @@ namespace Drawing.Components
             {
                 new Vector2(topLeftX, Dimensions.RoofBaseY),
                 new Vector2(topLeftX + topWidth, Dimensions.RoofBaseY),
-                new Vector2(
-                    bottomLeftX + bottomWidth,
-                    Dimensions.RoofBaseY + extendedWallHeight
-                ),
+                new Vector2(bottomLeftX + bottomWidth, Dimensions.RoofBaseY + extendedWallHeight),
                 new Vector2(bottomLeftX, Dimensions.RoofBaseY + extendedWallHeight),
             };
 

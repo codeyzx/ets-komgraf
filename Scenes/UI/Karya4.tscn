@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://dyyag31t7l2e"]
 
-[ext_resource type="Script" uid="uid://h3y5tln2516s" path="res://Scripts/UI/Karya4Button.cs" id="1_f3ebq"]
-[ext_resource type="Script" uid="uid://drv3uh4ojb5qi" path="res://Scripts/UI/Karya4.cs" id="1_u4p5o"]
+[ext_resource type="Script" uid="uid://cqe5oayx72tfg" path="res://Scripts/UI/Buttons/BaseButton.cs" id="1_f3ebq"]
+[ext_resource type="Script" uid="uid://drv3uh4ojb5qi" path="res://Scripts/UI/Scenes/Karya4Scene.cs" id="1_u4p5o"]
 
 [node name="Karya4" type="Node2D"]
 script = ExtResource("1_u4p5o")

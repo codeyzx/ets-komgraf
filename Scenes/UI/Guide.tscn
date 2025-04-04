@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://b1sl3eabh40cq"]
 
-[ext_resource type="Script" uid="uid://dkxuha8i6omef" path="res://Scripts/UI/Guide.cs" id="1_ehim5"]
+[ext_resource type="Script" uid="uid://dkxuha8i6omef" path="res://Scripts/UI/Scenes/GuideScene.cs" id="1_ehim5"]
 
 [node name="Guide" type="Control"]
 layout_mode = 3

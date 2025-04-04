@@ -1,7 +1,9 @@
 using Core;
+using Drawing.Components.Building;
+using Drawing.Configuration;
 using Godot;
 
-namespace Drawing.Components
+namespace Drawing.Components.Structures
 {
     /// <summary>
     /// Component for drawing the stairs structure of the building.
@@ -26,7 +28,9 @@ namespace Drawing.Components
             Color outlineColor,
             float outlineThickness,
             float stairHeight,
-            int columnCount) : base(canvas, primitif, dimensions, scaleFactor)
+            int columnCount
+        )
+            : base(canvas, primitif, dimensions, scaleFactor)
         {
             _primaryColor = primaryColor;
             _outlineColor = outlineColor;

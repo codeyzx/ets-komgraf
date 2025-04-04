@@ -1,10 +1,14 @@
-using System;
 using Godot;
 
-namespace UI
+namespace Scenes
 {
-    public partial class Karya2Button : Button
+    public partial class GuideScene : Control
     {
+        public override void _Ready()
+        {
+            // Initialization code here
+        }
+
         private void OnBtnBackPressed()
         {
             NavigateToScene("res://Scenes/UI/Welcome.tscn");

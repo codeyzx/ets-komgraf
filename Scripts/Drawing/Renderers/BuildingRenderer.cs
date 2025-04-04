@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
 using Core;
-using Drawing.Components;
+using Drawing.Components.Building;
+using Drawing.Components.Characters;
+using Drawing.Components.Structures;
+using Drawing.Configuration;
 using Godot;
 
-namespace Drawing
+namespace Drawing.Renderers
 {
     /// <summary>
     /// Renderer for the building structure with all its components.

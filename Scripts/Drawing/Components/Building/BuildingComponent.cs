@@ -1,7 +1,8 @@
 using Core;
+using Drawing.Configuration;
 using Godot;
 
-namespace Drawing
+namespace Drawing.Components.Building
 {
     /// <summary>
     /// Base class for all building components.

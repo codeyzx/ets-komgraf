@@ -1,15 +1,14 @@
 using System;
-using Core;
-using Drawing;
+using Drawing.Configuration;
+using Drawing.Renderers;
 using Godot;
-using Karya3.Scripts.UI;
 
-namespace UI
+namespace Scenes
 {
     /// <summary>
     /// Represents the Karya3 scene, which displays a traditional building with horror elements.
     /// </summary>
-    public partial class Karya3 : Node2D
+    public partial class Karya3Scene : Node2D
     {
         // Animation renderer for animations and components only (no house structure)
         private AnimationOnlyRenderer _animationRenderer;
@@ -18,7 +17,7 @@ namespace UI
         private SketchRenderer _sketchRenderer;
 
         // Building configuration
-        private BuildingConfiguration _config = new BuildingConfiguration
+        private readonly BuildingConfiguration _config = new BuildingConfiguration
         {
             PrimaryColor = new Color(0.3f, 0.3f, 0.35f), // Darker color for horror theme
             SecondaryColor = new Color(0.2f, 0.2f, 0.25f), // Darker secondary color
@@ -199,7 +198,7 @@ namespace UI
             {
                 Text = "Back to Welcome",
                 Position = new Vector2(10, 10),
-                Size = new Vector2(150, 40)
+                Size = new Vector2(150, 40),
             };
             backButton.Pressed += NavigateToWelcomeScene;
             AddChild(backButton);

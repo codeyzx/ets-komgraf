@@ -1,7 +1,9 @@
 using Core;
+using Drawing.Components.Building;
+using Drawing.Configuration;
 using Godot;
 
-namespace Drawing.Components
+namespace Drawing.Components.Structures
 {
     /// <summary>
     /// Component for drawing the central horizontal structure of the building.
@@ -24,7 +26,9 @@ namespace Drawing.Components
             Color secondaryColor,
             Color outlineColor,
             float outlineThickness,
-            bool isTop = false) : base(canvas, primitif, dimensions, scaleFactor)
+            bool isTop = false
+        )
+            : base(canvas, primitif, dimensions, scaleFactor)
         {
             _secondaryColor = secondaryColor;
             _outlineColor = outlineColor;

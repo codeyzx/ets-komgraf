@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Drawing
+namespace Drawing.Configuration
 {
     /// <summary>
     /// Stores the dimensions of a building component for easier reference.

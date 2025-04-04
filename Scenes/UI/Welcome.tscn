@@ -1,6 +1,6 @@
 [gd_scene load_steps=7 format=3 uid="uid://cfss6v3uy85gm"]
 
-[ext_resource type="Script" uid="uid://d2is84fcs876r" path="res://Scripts/UI/Welcome.cs" id="1_mbnmb"]
+[ext_resource type="Script" uid="uid://d2is84fcs876r" path="res://Scripts/UI/Scenes/WelcomeScene.cs" id="1_uk7oo"]
 [ext_resource type="Shader" uid="uid://bp1d3knpvvesw" path="res://Scenes/Shaders/Background.gdshader" id="2_gh0ka"]
 [ext_resource type="Texture2D" uid="uid://c3ace51xyw3kg" path="res://Assets/Images/Sprites/Pattern.png" id="3_q1w4a"]
 [ext_resource type="Shader" uid="uid://dk3qxakmbhe8e" path="res://Scenes/Shaders/Pattern.gdshader" id="4_4gkh8"]
@@ -18,7 +18,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_mbnmb")
+script = ExtResource("1_uk7oo")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 0
@@ -52,7 +52,6 @@ layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 text = "Karya 1"
-script = ExtResource("1_mbnmb")
 
 [node name="BtnKarya2" type="Button" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2

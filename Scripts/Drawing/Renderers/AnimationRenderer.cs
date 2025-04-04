@@ -1,10 +1,7 @@
-using System;
-using System.Collections.Generic;
-using Core;
-using Drawing.Components;
+using Drawing.Configuration;
 using Godot;
 
-namespace Drawing
+namespace Drawing.Renderers
 {
     /// <summary>
     /// A specialized renderer that extends BuildingRenderer but only draws animations and components,
@@ -17,10 +14,8 @@ namespace Drawing
         /// </summary>
         /// <param name="canvas">The canvas to draw on.</param>
         /// <param name="config">The building configuration.</param>
-        public AnimationRenderer(CanvasItem canvas, BuildingConfiguration config) 
-            : base(canvas, config)
-        {
-        }
+        public AnimationRenderer(CanvasItem canvas, BuildingConfiguration config)
+            : base(canvas, config) { }
 
         /// <summary>
         /// Overrides the Draw method to only draw animations and components,
@@ -34,16 +29,16 @@ namespace Drawing
 
             // Draw only animations and components
             // We don't call base.Draw() to avoid drawing the house structure
-            
+
             // Instead, we manually draw the animations and components
             // by accessing protected methods through reflection
-            
+
             // This is a simplified approach that may not include all animations
             // but should work for basic animations and components
-            
+
             // Draw fog particles and other horror effects
             // These are normally drawn in the base.Draw() method
-            
+
             // Note: This implementation is simplified and may not include all animations
             // from the original BuildingRenderer class
         }

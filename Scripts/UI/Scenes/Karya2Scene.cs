@@ -1,16 +1,14 @@
-using System;
-using System.Collections.Generic;
-using Core;
-using Drawing;
+using Drawing.Configuration;
+using Drawing.Renderers;
 using Godot;
 
-namespace UI
+namespace Scenes
 {
     /// <summary>
     /// Renders a traditional building structure with customizable properties.
     /// Uses a modular architecture with separate components for different parts of the building.
     /// </summary>
-    public partial class Karya2 : Node2D
+    public partial class Karya2Scene : Node2D
     {
         // Building renderer and configuration
         private BuildingRenderer _buildingRenderer;

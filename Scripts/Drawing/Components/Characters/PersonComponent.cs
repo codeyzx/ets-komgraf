@@ -1,9 +1,11 @@
 using System;
 using System.Linq;
 using Core;
+using Drawing.Components.Building;
+using Drawing.Configuration;
 using Godot;
 
-namespace Drawing.Components
+namespace Drawing.Components.Characters
 {
     /// <summary>
     /// Component for rendering a giant, terrifying humanoid figure.
@@ -290,14 +292,14 @@ namespace Drawing.Components
             {
                 // Calculate the slope of the ladder (approximately 45 degrees or π/4 radians)
                 float ladderAngle = Mathf.Pi / 4; // 45 degrees in radians
-                
+
                 // Roll the head along the ladder's slope
                 float moveDistance = _rollingHeadSpeed * delta * speedMultiplier;
-                
+
                 // Update position along the ladder's slope
                 _rollingHeadPosition.X += moveDistance * Mathf.Cos(ladderAngle);
                 _rollingHeadPosition.Y += moveDistance * Mathf.Sin(ladderAngle);
-                
+
                 // Rotate the head as it rolls
                 _rollingHeadRotation += 5f * delta * speedMultiplier;
 

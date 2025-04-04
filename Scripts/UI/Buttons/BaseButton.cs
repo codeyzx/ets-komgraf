@@ -1,9 +1,8 @@
-using System;
 using Godot;
 
-namespace UI
+namespace Scenes
 {
-    public partial class Karya4Button : Button
+    public partial class BaseButton : Button
     {
         private void OnBtnBackPressed()
         {

@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Drawing
+namespace Drawing.Configuration
 {
     /// <summary>
     /// Configuration class for building parameters.

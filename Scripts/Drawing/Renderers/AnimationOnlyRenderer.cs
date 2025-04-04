@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
-using Core;
-using Drawing.Components;
+using Drawing.Components.Characters;
+using Drawing.Configuration;
 using Godot;
 
-namespace Drawing
+namespace Drawing.Renderers
 {
     /// <summary>
     /// A specialized renderer that extends BuildingRenderer but only draws animations and components,
@@ -17,10 +17,8 @@ namespace Drawing
         /// </summary>
         /// <param name="canvas">The canvas to draw on.</param>
         /// <param name="config">The building configuration.</param>
-        public AnimationOnlyRenderer(CanvasItem canvas, BuildingConfiguration config) 
-            : base(canvas, config)
-        {
-        }
+        public AnimationOnlyRenderer(CanvasItem canvas, BuildingConfiguration config)
+            : base(canvas, config) { }
 
         /// <summary>
         /// Overrides the Draw method to only draw animations and components,
@@ -33,42 +31,56 @@ namespace Drawing
             UpdateAnimation(0.016f); // Assume 60 FPS
 
             // Access the private fields using reflection
-            var fogParticlesField = typeof(BuildingRenderer).GetField("_fogParticles", 
-                System.Reflection.BindingFlags.NonPublic | 
-                System.Reflection.BindingFlags.Instance);
-            
-            var fogParticleTypesField = typeof(BuildingRenderer).GetField("_fogParticleTypes", 
-                System.Reflection.BindingFlags.NonPublic | 
-                System.Reflection.BindingFlags.Instance);
-            
-            var fogParticleRotationsField = typeof(BuildingRenderer).GetField("_fogParticleRotations", 
-                System.Reflection.BindingFlags.NonPublic | 
-                System.Reflection.BindingFlags.Instance);
-            
-            var canvasField = typeof(BuildingRenderer).GetField("_canvas", 
-                System.Reflection.BindingFlags.NonPublic | 
-                System.Reflection.BindingFlags.Instance);
-            
-            var randomField = typeof(BuildingRenderer).GetField("_random", 
-                System.Reflection.BindingFlags.NonPublic | 
-                System.Reflection.BindingFlags.Instance);
-            
-            var peopleField = typeof(BuildingRenderer).GetField("_people", 
-                System.Reflection.BindingFlags.NonPublic | 
-                System.Reflection.BindingFlags.Instance);
-            
-            var rollingHeadField = typeof(BuildingRenderer).GetField("_rollingHead", 
-                System.Reflection.BindingFlags.NonPublic | 
-                System.Reflection.BindingFlags.Instance);
-            
-            var animationEnabledField = typeof(BuildingRenderer).GetField("_animationEnabled", 
-                System.Reflection.BindingFlags.NonPublic | 
-                System.Reflection.BindingFlags.Instance);
+            var fogParticlesField = typeof(BuildingRenderer).GetField(
+                "_fogParticles",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance
+            );
 
-            if (fogParticlesField != null && fogParticleTypesField != null && 
-                fogParticleRotationsField != null && canvasField != null && 
-                randomField != null && peopleField != null && 
-                rollingHeadField != null && animationEnabledField != null)
+            var fogParticleTypesField = typeof(BuildingRenderer).GetField(
+                "_fogParticleTypes",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance
+            );
+
+            var fogParticleRotationsField = typeof(BuildingRenderer).GetField(
+                "_fogParticleRotations",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance
+            );
+
+            var canvasField = typeof(BuildingRenderer).GetField(
+                "_canvas",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance
+            );
+
+            var randomField = typeof(BuildingRenderer).GetField(
+                "_random",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance
+            );
+
+            var peopleField = typeof(BuildingRenderer).GetField(
+                "_people",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance
+            );
+
+            var rollingHeadField = typeof(BuildingRenderer).GetField(
+                "_rollingHead",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance
+            );
+
+            var animationEnabledField = typeof(BuildingRenderer).GetField(
+                "_animationEnabled",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance
+            );
+
+            if (
+                fogParticlesField != null
+                && fogParticleTypesField != null
+                && fogParticleRotationsField != null
+                && canvasField != null
+                && randomField != null
+                && peopleField != null
+                && rollingHeadField != null
+                && animationEnabledField != null
+            )
             {
                 var fogParticles = fogParticlesField.GetValue(this) as List<Vector2>;
                 var fogParticleTypes = fogParticleTypesField.GetValue(this) as List<int>;
@@ -79,9 +91,14 @@ namespace Drawing
                 var rollingHead = rollingHeadField.GetValue(this) as PersonComponent;
                 var animationEnabled = (bool)animationEnabledField.GetValue(this);
 
-                if (fogParticles != null && fogParticleTypes != null && 
-                    fogParticleRotations != null && canvas != null && 
-                    random != null && people != null)
+                if (
+                    fogParticles != null
+                    && fogParticleTypes != null
+                    && fogParticleRotations != null
+                    && canvas != null
+                    && random != null
+                    && people != null
+                )
                 {
                     // Draw fog particles
                     if (animationEnabled)
@@ -102,9 +119,20 @@ namespace Drawing
                             {
                                 case 0: // Skull-like shape
                                     canvas.DrawCircle(Vector2.Zero, size, fogColor);
-                                    canvas.DrawCircle(new Vector2(-size / 3, -size / 3), size / 3, fogColor);
-                                    canvas.DrawCircle(new Vector2(size / 3, -size / 3), size / 3, fogColor);
-                                    canvas.DrawRect(new Rect2(-size / 2, 0, size, size / 3), fogColor);
+                                    canvas.DrawCircle(
+                                        new Vector2(-size / 3, -size / 3),
+                                        size / 3,
+                                        fogColor
+                                    );
+                                    canvas.DrawCircle(
+                                        new Vector2(size / 3, -size / 3),
+                                        size / 3,
+                                        fogColor
+                                    );
+                                    canvas.DrawRect(
+                                        new Rect2(-size / 2, 0, size, size / 3),
+                                        fogColor
+                                    );
                                     break;
 
                                 case 1: // Ghost-like shape
@@ -119,13 +147,13 @@ namespace Drawing
                                         new Vector2(-size, size / 2),
                                         new Vector2(-size, -size / 2),
                                     };
-                                    
+
                                     Color[] ghostColors = new Color[ghostPoints.Length];
                                     for (int j = 0; j < ghostColors.Length; j++)
                                     {
                                         ghostColors[j] = fogColor;
                                     }
-                                    
+
                                     canvas.DrawPolygon(ghostPoints, ghostColors);
                                     break;
 
