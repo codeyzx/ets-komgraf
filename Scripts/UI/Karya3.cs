@@ -133,7 +133,7 @@ namespace UI
             vbox.AnchorBottom = 0;
             vbox.AnchorLeft = 0;
             vbox.AnchorRight = 0;
-            vbox.Position = new Vector2(10, 10);
+            vbox.Position = new Vector2(GetViewportRect().Size.X - 300, 10);
 
             // Add the container first, then set its size
             CallDeferred(Node.MethodName.AddChild, vbox);
@@ -143,36 +143,42 @@ namespace UI
             Label titleLabel = new Label();
             titleLabel.Text = "Horror Animation Controls";
             titleLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.1f, 0.1f));
+            titleLabel.HorizontalAlignment = HorizontalAlignment.Right;
             vbox.AddChild(titleLabel);
 
             // Create animation controls label
             Label controlsLabel = new Label();
             controlsLabel.Text = "Press SPACE to start/restart animation";
             controlsLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
+            controlsLabel.HorizontalAlignment = HorizontalAlignment.Right;
             vbox.AddChild(controlsLabel);
 
             // Create animation speed label
             _animationSpeedLabel = new Label();
             _animationSpeedLabel.Text = "Animation Speed (1-5): 1";
             _animationSpeedLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
+            _animationSpeedLabel.HorizontalAlignment = HorizontalAlignment.Right;
             vbox.AddChild(_animationSpeedLabel);
 
             // Create rotation speed label
             _rotationSpeedLabel = new Label();
             _rotationSpeedLabel.Text = "Rotation Speed (Q/W): 0";
             _rotationSpeedLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
+            _rotationSpeedLabel.HorizontalAlignment = HorizontalAlignment.Right;
             vbox.AddChild(_rotationSpeedLabel);
 
             // Create scale speed label
             _scaleSpeedLabel = new Label();
             _scaleSpeedLabel.Text = "Scale Speed (A/S): 0";
             _scaleSpeedLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
+            _scaleSpeedLabel.HorizontalAlignment = HorizontalAlignment.Right;
             vbox.AddChild(_scaleSpeedLabel);
 
             // Create horror effect label
             _horrorEffectLabel = new Label();
             _horrorEffectLabel.Text = "Horror Effect (Z/X): 1.0";
             _horrorEffectLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.1f, 0.1f));
+            _horrorEffectLabel.HorizontalAlignment = HorizontalAlignment.Right;
             vbox.AddChild(_horrorEffectLabel);
         }
 
