@@ -26,6 +26,7 @@ namespace Drawing.Renderers
         private RoofComponent _roofComponent;
         private MainHouseComponent _mainHouseComponent;
         private CentralStructureComponent _centralStructureComponent;
+        private CentralStructureComponent _centralStructureComponent2;
         private StairsComponent _stairsComponent;
         private LadderComponent _ladderComponent;
 
@@ -160,6 +161,17 @@ namespace Drawing.Renderers
                 _config.SecondaryColor,
                 _config.OutlineColor,
                 _config.OutlineThickness
+            );
+
+            _centralStructureComponent2 = new CentralStructureComponent(
+                _canvas,
+                _primitif,
+                _dimensions,
+                _scaleFactor,
+                _config.SecondaryColor,
+                _config.OutlineColor,
+                _config.OutlineThickness,
+                true
             );
 
             _stairsComponent = new StairsComponent(
@@ -468,6 +480,7 @@ namespace Drawing.Renderers
             _roofComponent.Draw();
             _mainHouseComponent.Draw();
             _centralStructureComponent.Draw();
+            _centralStructureComponent2.Draw();
             _stairsComponent.Draw();
 
             // Draw ladder with animation if it's visible
