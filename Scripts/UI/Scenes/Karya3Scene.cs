@@ -203,7 +203,7 @@ namespace Scenes
 
             // Create title label
             Label titleLabel = new Label();
-            titleLabel.Text = "Karya 3: Line Primitives & Animation";
+            titleLabel.Text = "Horror Animation Controls";
             titleLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.1f, 0.1f));
             titleLabel.HorizontalAlignment = HorizontalAlignment.Right;
             vbox.CallDeferred(Node.MethodName.AddChild, titleLabel);
