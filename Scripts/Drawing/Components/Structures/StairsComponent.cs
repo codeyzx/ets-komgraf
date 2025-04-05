@@ -108,21 +108,33 @@ namespace Drawing.Components.Structures
         private void DrawStairBeams(BuildingDimensions dimensions)
         {
             float beamHeight = 10 * ScaleFactor;
+            float beamMargin = 30 * ScaleFactor;
+            float stairWidth = dimensions.HouseWidth;
             Vector2 center = new Vector2(
                 dimensions.HousePosition.X + dimensions.HouseWidth / 2,
                 dimensions.HousePosition.Y
             );
-            float stairWidth = dimensions.HouseWidth - 20 * ScaleFactor;
-            float offsetY = 35;
-            float margin = 30;
+
+            // Calculate the base position relative to the viewport size
+            float baseY = dimensions.RoofBaseY + dimensions.WallHeight;
+
+            // Calculate the beam positions based on the stair height
+            // This ensures the beams maintain proper positioning in fullscreen
+            float stairHeight = _stairHeight * ScaleFactor;
+            float upperBeamOffset = stairHeight * 0.45f; // 45% of stair height from the base
+            float lowerBeamOffset = stairHeight * 0.75f; // 75% of stair height from the base
+
+            // Calculate responsive Y positions
+            float upperBeamY = baseY + upperBeamOffset;
+            float lowerBeamY = baseY + lowerBeamOffset;
 
             // Upper beam
             Vector2[] upperBeam = CreateBeam(
                 center,
                 stairWidth,
                 beamHeight,
-                dimensions.HousePosition.Y + dimensions.HouseHeight - 10 - beamHeight - offsetY,
-                margin
+                upperBeamY,
+                beamMargin
             );
 
             Canvas.DrawPolygon(upperBeam, [_primaryColor]);
@@ -133,8 +145,8 @@ namespace Drawing.Components.Structures
                 center,
                 stairWidth,
                 beamHeight,
-                dimensions.HousePosition.Y + dimensions.HouseHeight - 10 - beamHeight,
-                margin
+                lowerBeamY,
+                beamMargin
             );
 
             Canvas.DrawPolygon(lowerBeam, [_primaryColor]);
@@ -152,12 +164,16 @@ namespace Drawing.Components.Structures
             float margin
         )
         {
+            float halfWidth = width / 2;
+            float leftX = center.X - halfWidth + margin;
+            float rightX = center.X + halfWidth - margin;
+
             return
             [
-                new Vector2(center.X - width / 2 * ScaleFactor + margin, yPosition),
-                new Vector2(center.X - width / 2 * ScaleFactor + width + 5, yPosition),
-                new Vector2(center.X - width / 2 * ScaleFactor + width + 5, yPosition + height),
-                new Vector2(center.X - width / 2 * ScaleFactor + margin, yPosition + height),
+                new Vector2(leftX, yPosition),
+                new Vector2(rightX, yPosition),
+                new Vector2(rightX, yPosition + height),
+                new Vector2(leftX, yPosition + height),
             ];
         }
     }

@@ -246,42 +246,50 @@ namespace Drawing.Renderers
                     ),
                 ];
 
-                // Draw column outline
                 _primitif.DrawBresenhamLinePoints(_canvas, column, Colors.Black, _scaleFactor);
             }
 
-            // Draw stair beams
+            // Draw stair beams responsively
+            // Beam config
             float beamHeight = 10 * _scaleFactor;
+            float beamMargin = 30 * _scaleFactor;
+            float stairWidth = dimensions.HouseWidth;
             Vector2 center = new Vector2(
                 dimensions.HousePosition.X + dimensions.HouseWidth / 2,
                 dimensions.HousePosition.Y
             );
-            float stairWidth = dimensions.HouseWidth - 20 * _scaleFactor;
-            float offsetY = 35;
-            float beamMargin = 30;
 
-            // Upper beam
+            // Calculate the base position relative to the viewport size
+            float baseY = dimensions.RoofBaseY + dimensions.WallHeight;
+
+            // Calculate the beam positions based on the viewport size
+            // This ensures the beams maintain proper positioning in fullscreen
+            float stairHeight = _config.StairHeight * _scaleFactor;
+            float upperBeamOffset = stairHeight * 0.45f; // 30% of stair height from the base
+            float lowerBeamOffset = stairHeight * 0.75f; // 70% of stair height from the base
+
+            // Posisi Y absolut responsif yang menyesuaikan dengan ukuran viewport
+            float upperBeamY = baseY + upperBeamOffset;
+            float lowerBeamY = baseY + lowerBeamOffset;
+
+            // Gambar beam atas
             Vector2[] upperBeam = CreateBeam(
                 center,
                 stairWidth,
                 beamHeight,
-                dimensions.HousePosition.Y + dimensions.HouseHeight - 10 - beamHeight - offsetY,
+                upperBeamY,
                 beamMargin
             );
-
-            // Draw upper beam outline
             _primitif.DrawBresenhamLinePoints(_canvas, upperBeam, Colors.Black, _scaleFactor);
 
-            // Lower beam
+            // Gambar beam bawah
             Vector2[] lowerBeam = CreateBeam(
                 center,
                 stairWidth,
                 beamHeight,
-                dimensions.HousePosition.Y + dimensions.HouseHeight - 10 - beamHeight,
+                lowerBeamY,
                 beamMargin
             );
-
-            // Draw lower beam outline
             _primitif.DrawBresenhamLinePoints(_canvas, lowerBeam, Colors.Black, _scaleFactor);
         }
 
@@ -296,12 +304,16 @@ namespace Drawing.Renderers
             float margin
         )
         {
+            float halfWidth = width / 2;
+            float leftX = center.X - halfWidth + margin;
+            float rightX = center.X + halfWidth - margin;
+
             return
             [
-                new Vector2(center.X - width / 2 * _scaleFactor + margin, yPosition),
-                new Vector2(center.X - width / 2 * _scaleFactor + width + 5, yPosition),
-                new Vector2(center.X - width / 2 * _scaleFactor + width + 5, yPosition + height),
-                new Vector2(center.X - width / 2 * _scaleFactor + margin, yPosition + height),
+                new Vector2(leftX, yPosition),
+                new Vector2(rightX, yPosition),
+                new Vector2(rightX, yPosition + height),
+                new Vector2(leftX, yPosition + height),
             ];
         }
 
@@ -311,7 +323,6 @@ namespace Drawing.Renderers
         private void DrawLadderOutline()
         {
             // Position the ladder on the right side
-            float ladderWidth = _config.LadderWidth * _scaleFactor;
             float ladderLength = _config.LadderLength * _scaleFactor;
 
             // Starting position for the ladder (right side of the building)
@@ -345,11 +356,6 @@ namespace Drawing.Renderers
                 Colors.Black,
                 1.5f * _scaleFactor
             );
-
-            // Draw ladder steps
-            float stepSpacing = ladderLength / (_config.LadderStepCount + 1);
-            Vector2 direction = (ladderEnd - ladderStart).Normalized();
-            Vector2 stepDirection = new Vector2(direction.Y, -direction.X) * railOffset.Length();
 
             for (int i = 1; i <= _config.LadderStepCount; i++)
             {
