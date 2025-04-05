@@ -379,7 +379,7 @@ namespace Drawing.Renderers
 
             // Window dimensions
             float windowTopY = _dimensions.RoofBaseY;
-            float windowBottomY = _dimensions.RoofBaseY + _dimensions.WallHeight;
+            float windowBottomY = _dimensions.RoofBaseY + _dimensions.WallHeight + 3 * _scaleFactor;
 
             // Calculate horizontal spacing for vertical lines
             float spacing = topWidth / (_config.WindowLineCount + 1);
@@ -398,18 +398,6 @@ namespace Drawing.Renderers
                     1.5f * _scaleFactor
                 );
             }
-
-            // Draw horizontal window dividers
-            float windowHeight = windowBottomY - windowTopY;
-            float dividerY = windowTopY + windowHeight / 2;
-
-            _primitif.DrawBresenhamLine(
-                _canvas,
-                new Vector2(topLeftX, dividerY),
-                new Vector2(topLeftX + topWidth, dividerY),
-                Colors.Black,
-                1.5f * _scaleFactor
-            );
         }
     }
 }
