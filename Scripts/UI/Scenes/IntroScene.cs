@@ -62,7 +62,7 @@ namespace Scenes
 
         // Shader parameter names for easy reference
         private const string PARAM_PULSE_INTENSITY = "pulse_intensity";
-        private const string PARAM_FOG_DENSITY = "density";
+        private const string PARAM_FOG_DENSITY = "fog_density";
         private const string PARAM_SHADOW_OPACITY = "shadow_opacity";
         private const string PARAM_SHADOW_POSITION = "shadow_position";
         private const string PARAM_DISTORTION = "distortion";
@@ -115,11 +115,16 @@ namespace Scenes
         public override void _Ready()
         {
             GD.Print("IntroScene: Starting initialization");
+
             // Initialize UI elements
             InitializeUI();
 
             // Start the first frame
             StartFrame(_currentFrame);
+
+            // Process input to ensure Enter key works
+            ProcessMode = ProcessModeEnum.Always;
+
             GD.Print("IntroScene: Initialization complete");
         }
 
@@ -134,6 +139,18 @@ namespace Scenes
             _fogEffect.Size = viewportSize;
             _shadowFigure.Size = viewportSize;
             _vignetteEffect.Size = viewportSize;
+
+            // Force all shaders to be visible
+            _noiseTexture.Visible = true;
+            _fogEffect.Visible = true;
+            _shadowFigure.Visible = true;
+            _vignetteEffect.Visible = true;
+
+            // Make sure all ColorRects have proper colors
+            _noiseTexture.Color = Colors.White;
+            _fogEffect.Color = Colors.White;
+            _shadowFigure.Color = Colors.White;
+            _vignetteEffect.Color = Colors.White;
 
             GD.Print($"Updated layout with viewport size: {viewportSize}");
         }
@@ -157,12 +174,15 @@ namespace Scenes
                 && keyEvent.Keycode == Key.Enter
             )
             {
+                GD.Print("Enter key pressed");
                 if (_canAdvance)
                 {
+                    GD.Print("Advancing to next frame");
                     AdvanceToNextFrame();
                 }
                 else if (_isTyping)
                 {
+                    GD.Print("Completing typing animation");
                     // Skip the typing animation and show the full text
                     CompleteTypingAnimation();
                 }
@@ -177,29 +197,24 @@ namespace Scenes
                 Color = new Color(0.01f, 0.01f, 0.02f),
                 AnchorRight = 1,
                 AnchorBottom = 1,
+                ZIndex = -10, // Ensure it's the bottom-most layer
             };
+            AddChild(_backgroundRect);
 
             // Create procedural noise texture using external shader
-            try
+            _backgroundShader = new ShaderMaterial();
+            var noiseShader = ResourceLoader.Load<Shader>(NoiseShaderPath);
+            if (noiseShader == null)
             {
-                _backgroundShader = new ShaderMaterial();
-                var noiseShader = ResourceLoader.Load<Shader>(NoiseShaderPath);
-                if (noiseShader == null)
-                {
-                    GD.PrintErr($"Failed to load noise shader from {NoiseShaderPath}");
-                }
-                else
-                {
-                    GD.Print($"Successfully loaded noise shader from {NoiseShaderPath}");
-                    _backgroundShader.Shader = noiseShader;
-                    _backgroundShader.SetShaderParameter("noise_density", 0.6f);
-                    _backgroundShader.SetShaderParameter("noise_speed", 0.05f);
-                    _backgroundShader.SetShaderParameter("noise_scale", new Vector2(2.0f, 2.0f));
-                }
+                GD.PrintErr($"Failed to load noise shader from {NoiseShaderPath}");
             }
-            catch (Exception ex)
+            else
             {
-                GD.PrintErr($"Error loading noise shader: {ex.Message}");
+                GD.Print($"Successfully loaded noise shader from {NoiseShaderPath}");
+                _backgroundShader.Shader = noiseShader;
+                _backgroundShader.SetShaderParameter("noise_density", 0.6f);
+                _backgroundShader.SetShaderParameter("noise_speed", 0.05f);
+                _backgroundShader.SetShaderParameter("noise_scale", new Vector2(2.0f, 2.0f));
             }
 
             _noiseTexture = new ColorRect
@@ -207,37 +222,29 @@ namespace Scenes
                 AnchorRight = 1,
                 AnchorBottom = 1,
                 Material = _backgroundShader,
-                ZIndex = -3, // Ensure it's behind other elements
-                Color = new Color(1, 1, 1, 1), // Make sure color is fully opaque
+                ZIndex = -9, // Update Z-index to be above background but below other elements
+                Color = Colors.White, // Make sure color is fully opaque
                 MouseFilter = Control.MouseFilterEnum.Ignore, // Don't block mouse events
-                SizeFlagsHorizontal = SizeFlags.Fill,
-                SizeFlagsVertical = SizeFlags.Fill,
             };
+            AddChild(_noiseTexture);
 
             // Make sure the ColorRect fills the entire viewport
             _noiseTexture.SetAnchorsPreset(Control.LayoutPreset.FullRect);
 
             // Create vignette effect using external shader
             ShaderMaterial vignetteShader = new ShaderMaterial();
-            try
+            var vignette = ResourceLoader.Load<Shader>(VignetteShaderPath);
+            if (vignette == null)
             {
-                var vignette = ResourceLoader.Load<Shader>(VignetteShaderPath);
-                if (vignette == null)
-                {
-                    GD.PrintErr($"Failed to load vignette shader from {VignetteShaderPath}");
-                }
-                else
-                {
-                    GD.Print($"Successfully loaded vignette shader from {VignetteShaderPath}");
-                    vignetteShader.Shader = vignette;
-                    vignetteShader.SetShaderParameter(PARAM_PULSE_INTENSITY, 0.0f);
-                    vignetteShader.SetShaderParameter("vignette_opacity", 0.5f);
-                    vignetteShader.SetShaderParameter("pulse_speed", 1.0f);
-                }
+                GD.PrintErr($"Failed to load vignette shader from {VignetteShaderPath}");
             }
-            catch (Exception ex)
+            else
             {
-                GD.PrintErr($"Error loading vignette shader: {ex.Message}");
+                GD.Print($"Successfully loaded vignette shader from {VignetteShaderPath}");
+                vignetteShader.Shader = vignette;
+                vignetteShader.SetShaderParameter(PARAM_PULSE_INTENSITY, 0.0f);
+                vignetteShader.SetShaderParameter("vignette_opacity", 0.5f);
+                vignetteShader.SetShaderParameter("pulse_speed", 1.0f);
             }
 
             _vignetteEffect = new ColorRect
@@ -245,38 +252,30 @@ namespace Scenes
                 AnchorRight = 1,
                 AnchorBottom = 1,
                 Material = vignetteShader,
-                ZIndex = -1, // Above fog but below text
-                Color = new Color(1, 1, 1, 1), // Make sure color is fully opaque
+                ZIndex = -7, // Update Z-index to be above fog but below text
+                Color = Colors.White, // Make sure color is fully opaque
                 MouseFilter = Control.MouseFilterEnum.Ignore, // Don't block mouse events
-                SizeFlagsHorizontal = SizeFlags.Fill,
-                SizeFlagsVertical = SizeFlags.Fill,
             };
+            AddChild(_vignetteEffect);
 
             // Make sure the ColorRect fills the entire viewport
             _vignetteEffect.SetAnchorsPreset(Control.LayoutPreset.FullRect);
 
             // Create fog effect using external shader
             _fogShader = new ShaderMaterial();
-            try
+            var fogShader = ResourceLoader.Load<Shader>(FogShaderPath);
+            if (fogShader == null)
             {
-                var fogShader = ResourceLoader.Load<Shader>(FogShaderPath);
-                if (fogShader == null)
-                {
-                    GD.PrintErr($"Failed to load fog shader from {FogShaderPath}");
-                }
-                else
-                {
-                    GD.Print($"Successfully loaded fog shader from {FogShaderPath}");
-                    _fogShader.Shader = fogShader;
-                    _fogShader.SetShaderParameter(PARAM_FOG_DENSITY, 0.3f);
-                    _fogShader.SetShaderParameter("speed", 0.03f);
-                    _fogShader.SetShaderParameter("time_factor", 1.0f);
-                    _fogShader.SetShaderParameter("fog_color", new Vector3(0.05f, 0.05f, 0.05f));
-                }
+                GD.PrintErr($"Failed to load fog shader from {FogShaderPath}");
             }
-            catch (Exception ex)
+            else
             {
-                GD.PrintErr($"Error loading fog shader: {ex.Message}");
+                GD.Print($"Successfully loaded fog shader from {FogShaderPath}");
+                _fogShader.Shader = fogShader;
+                _fogShader.SetShaderParameter(PARAM_FOG_DENSITY, 0.3f);
+                _fogShader.SetShaderParameter("speed", 0.03f);
+                _fogShader.SetShaderParameter("time_factor", 1.0f);
+                _fogShader.SetShaderParameter("fog_color", new Vector3(0.05f, 0.05f, 0.05f));
             }
 
             _fogEffect = new ColorRect
@@ -284,43 +283,32 @@ namespace Scenes
                 AnchorRight = 1,
                 AnchorBottom = 1,
                 Material = _fogShader,
-                ZIndex = -2, // Between noise and vignette
-                Color = new Color(1, 1, 1, 1), // Make sure color is fully opaque
+                ZIndex = -8, // Update Z-index to be above noise but below vignette
+                Color = Colors.White, // Make sure color is fully opaque
                 MouseFilter = Control.MouseFilterEnum.Ignore, // Don't block mouse events
-                SizeFlagsHorizontal = SizeFlags.Fill,
-                SizeFlagsVertical = SizeFlags.Fill,
             };
+            AddChild(_fogEffect);
 
             // Make sure the ColorRect fills the entire viewport
             _fogEffect.SetAnchorsPreset(Control.LayoutPreset.FullRect);
 
             // Create procedural shadow figure using external shader
             _shadowShader = new ShaderMaterial();
-            try
+            var shadowShader = ResourceLoader.Load<Shader>(ShadowShaderPath);
+            if (shadowShader == null)
             {
-                var shadowShader = ResourceLoader.Load<Shader>(ShadowShaderPath);
-                if (shadowShader == null)
-                {
-                    GD.PrintErr($"Failed to load shadow shader from {ShadowShaderPath}");
-                }
-                else
-                {
-                    GD.Print($"Successfully loaded shadow shader from {ShadowShaderPath}");
-                    _shadowShader.Shader = shadowShader;
-                    _shadowShader.SetShaderParameter(PARAM_SHADOW_OPACITY, 0.0f); // Start invisible
-                    _shadowShader.SetShaderParameter(
-                        PARAM_SHADOW_POSITION,
-                        new Vector2(0.5f, 0.5f)
-                    );
-                    _shadowShader.SetShaderParameter(PARAM_DISTORTION, 0.2f);
-                    _shadowShader.SetShaderParameter("shadow_height", 1.5f);
-                    _shadowShader.SetShaderParameter("shadow_width", 0.5f);
-                    _shadowShader.SetShaderParameter("time_scale", 1.0f);
-                }
+                GD.PrintErr($"Failed to load shadow shader from {ShadowShaderPath}");
             }
-            catch (Exception ex)
+            else
             {
-                GD.PrintErr($"Error loading shadow shader: {ex.Message}");
+                GD.Print($"Successfully loaded shadow shader from {ShadowShaderPath}");
+                _shadowShader.Shader = shadowShader;
+                _shadowShader.SetShaderParameter(PARAM_SHADOW_OPACITY, 0.0f); // Start invisible
+                _shadowShader.SetShaderParameter(PARAM_SHADOW_POSITION, new Vector2(0.5f, 0.5f));
+                _shadowShader.SetShaderParameter(PARAM_DISTORTION, 0.2f);
+                _shadowShader.SetShaderParameter("shadow_height", 1.5f);
+                _shadowShader.SetShaderParameter("shadow_width", 0.5f);
+                _shadowShader.SetShaderParameter("time_scale", 1.0f);
             }
 
             _shadowFigure = new ColorRect
@@ -328,12 +316,11 @@ namespace Scenes
                 AnchorRight = 1,
                 AnchorBottom = 1,
                 Material = _shadowShader,
-                ZIndex = 1, // Above text
-                Color = new Color(1, 1, 1, 1), // Make sure color is fully opaque
+                ZIndex = 5, // Increase Z-index to ensure it's visible above text
+                Color = Colors.White, // Make sure color is fully opaque
                 MouseFilter = Control.MouseFilterEnum.Ignore, // Don't block mouse events
-                SizeFlagsHorizontal = SizeFlags.Fill,
-                SizeFlagsVertical = SizeFlags.Fill,
             };
+            AddChild(_shadowFigure);
 
             // Make sure the ColorRect fills the entire viewport
             _shadowFigure.SetAnchorsPreset(Control.LayoutPreset.FullRect);
@@ -351,6 +338,7 @@ namespace Scenes
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
                 Modulate = new Color(0.9f, 0.9f, 0.95f),
             };
+            AddChild(_textLabel);
 
             // Set custom font
             // _textLabel.AddThemeFontOverride("font", ResourceLoader.Load<Font>("res://path_to_horror_font.ttf"));
@@ -365,6 +353,7 @@ namespace Scenes
 
             // Animation player for various effects
             _animationPlayer = new AnimationPlayer();
+            AddChild(_animationPlayer);
 
             // Simplified audio players with horror-themed configuration
             _ambientSound = new AudioStreamPlayer { VolumeDb = 3.0f, Bus = "Ambient" };
@@ -373,45 +362,35 @@ namespace Scenes
             _sirenSound = new AudioStreamPlayer { VolumeDb = -5.0f, Bus = "Effects" };
             _waitingSound = new AudioStreamPlayer { VolumeDb = 10.0f, Bus = "UI" };
 
-            // Timer for random horror effects
-            _horrorEffectTimer = new Timer { WaitTime = 5.0f, OneShot = false };
-            _horrorEffectTimer.Timeout += OnHorrorEffectTimeout;
-
-            // Timer for typing effect
-            _typeTimer = new Timer { WaitTime = _typingSpeed, OneShot = true };
-            _typeTimer.Timeout += OnTypeTimerTimeout;
-
-            // Timer for pulsing light effect
-            _pulseTimer = new Timer { WaitTime = 0.05f, OneShot = false };
-            _pulseTimer.Timeout += OnPulseTimerTimeout;
-            // Don't start the timer until it's added to the scene tree
-
-            // Add all elements to the scene in the correct order
-            AddChild(_backgroundRect); // Base background color
-            AddChild(_noiseTexture); // Noise effect
-            AddChild(_fogEffect); // Fog effect
-            AddChild(_shadowFigure); // Shadow figure
-            AddChild(_vignetteEffect); // Vignette effect (should be above other visual effects)
-            AddChild(_textLabel); // Text should be on top of visual effects
-
-            // Add audio players and timers
+            // Add audio players
             AddChild(_ambientSound);
             AddChild(_effectSound);
             AddChild(_typingSound);
             AddChild(_sirenSound);
             AddChild(_waitingSound);
-            AddChild(_typeTimer);
-            AddChild(_pulseTimer);
-            AddChild(_horrorEffectTimer);
-            AddChild(_animationPlayer);
 
-            // Force update the layout
-            CallDeferred(nameof(UpdateLayout));
+            // Timer for random horror effects
+            _horrorEffectTimer = new Timer { WaitTime = 5.0f, OneShot = false };
+            _horrorEffectTimer.Timeout += OnHorrorEffectTimeout;
+            AddChild(_horrorEffectTimer);
+
+            // Timer for typing effect
+            _typeTimer = new Timer { WaitTime = _typingSpeed, OneShot = true };
+            _typeTimer.Timeout += OnTypeTimerTimeout;
+            AddChild(_typeTimer);
+
+            // Timer for pulsing light effect
+            _pulseTimer = new Timer { WaitTime = 0.05f, OneShot = false };
+            _pulseTimer.Timeout += OnPulseTimerTimeout;
+            AddChild(_pulseTimer);
 
             // Initialize siren timer
             _sirenTimer = new Timer { WaitTime = 15.0f, OneShot = true };
             _sirenTimer.Timeout += PlaySirenSound;
             AddChild(_sirenTimer);
+
+            // Force update the layout
+            UpdateLayout();
 
             // Now that all timers are added to the scene tree, we can start the pulse timer
             _pulseTimer.Start();
@@ -699,7 +678,7 @@ namespace Scenes
             try
             {
                 // Choose a random horror effect
-                int effectType = _random.Next(0, 5); // Increased range for more variety
+                int effectType = _random.Next(0, 7); // Increased range for more variety
 
                 switch (effectType)
                 {
@@ -710,8 +689,26 @@ namespace Scenes
                             // 70% chance of effect sound
                             PlayHorrorSound(HorrorSoundTheme.Effect, -1, -10.0f);
 
-                            // Subtle pulse with effect sound
-                            _pulseIntensity = 0.2f;
+                            // Stronger pulse with effect sound
+                            _pulseIntensity = 0.3f;
+                            
+                            // Add subtle screen shake
+                            Vector2 originalPosition = Position;
+                            Tween screenShakeTween = CreateTween();
+                            screenShakeTween.SetTrans(Tween.TransitionType.Sine);
+                            
+                            // Just a few subtle shakes
+                            for (int i = 0; i < 3; i++)
+                            {
+                                float intensity = 2.0f;
+                                Vector2 offset = new Vector2(
+                                    (float)_random.NextDouble() * intensity - intensity/2,
+                                    (float)_random.NextDouble() * intensity - intensity/2
+                                );
+                                screenShakeTween.TweenProperty(this, "position", originalPosition + offset, 0.1f);
+                            }
+                            // Return to original position
+                            screenShakeTween.TweenProperty(this, "position", originalPosition, 0.1f);
                         }
                         else
                         {
@@ -735,6 +732,9 @@ namespace Scenes
 
                                 // Create a tween for smooth transition
                                 Tween fogTween = CreateTween();
+                                fogTween.SetTrans(Tween.TransitionType.Cubic);
+                                fogTween.SetEase(Tween.EaseType.InOut);
+                                
                                 // Make sure we add the tween method before using it
                                 fogTween.TweenMethod(
                                     Callable.From<float>(
@@ -753,6 +753,22 @@ namespace Scenes
                                 if (newDensity > currentDensity && newDensity > 0.5f)
                                 {
                                     PlayHorrorSound(HorrorSoundTheme.Effect, 1, -15.0f); // Breathing sound
+                                    
+                                    // If fog is getting denser, make the vignette darker too
+                                    ShaderMaterial vignetteShader = _vignetteEffect.Material as ShaderMaterial;
+                                    if (vignetteShader != null)
+                                    {
+                                        float currentOpacity = vignetteShader.GetShaderParameter("vignette_opacity").AsSingle();
+                                        float newOpacity = Math.Min(0.8f, currentOpacity + 0.1f);
+                                        
+                                        Tween vignetteTween = CreateTween();
+                                        vignetteTween.TweenMethod(
+                                            Callable.From<float>(opacity => vignetteShader.SetShaderParameter("vignette_opacity", opacity)),
+                                            currentOpacity,
+                                            newOpacity,
+                                            3.0f
+                                        );
+                                    }
                                 }
                             }
                             catch (Exception ex)
@@ -766,6 +782,20 @@ namespace Scenes
                         // Pulse vignette effect with sound
                         _pulseIntensity = 0.3f + (float)_random.NextDouble() * 0.2f;
                         PlayHorrorSound(HorrorSoundTheme.Effect, 0, -15.0f); // Whisper sound
+                        
+                        // Add subtle background color shift
+                        if (_backgroundRect != null)
+                        {
+                            Tween bgTween = CreateTween();
+                            bgTween.SetTrans(Tween.TransitionType.Sine);
+                            
+                            // Shift to slightly blue-ish color for a cold feeling
+                            Color originalColor = _backgroundRect.Color;
+                            Color coldColor = new Color(0.01f, 0.01f, 0.05f);
+                            
+                            bgTween.TweenProperty(_backgroundRect, "color", coldColor, 1.0f);
+                            bgTween.TweenProperty(_backgroundRect, "color", originalColor, 2.0f);
+                        }
                         break;
 
                     case 3:
@@ -791,6 +821,9 @@ namespace Scenes
 
                                 // Create a tween for smooth movement
                                 Tween shadowTween = CreateTween();
+                                shadowTween.SetTrans(Tween.TransitionType.Cubic);
+                                shadowTween.SetEase(Tween.EaseType.Out);
+                                
                                 // Make sure we add the tween method before using it
                                 shadowTween.TweenMethod(
                                     Callable.From<Vector2>(UpdateShadowPosition),
@@ -803,6 +836,21 @@ namespace Scenes
                                 if (_random.NextDouble() < 0.5f)
                                 {
                                     PlayHorrorSound(HorrorSoundTheme.Effect, 2, -15.0f); // Distant voices
+                                    
+                                    // Occasionally make the shadow more visible
+                                    if (_random.NextDouble() < 0.3f)
+                                    {
+                                        float currentOpacity = _shadowShader.GetShaderParameter(PARAM_SHADOW_OPACITY).AsSingle();
+                                        float targetOpacity = Math.Min(0.9f, currentOpacity + 0.1f);
+                                        
+                                        Tween opacityTween = CreateTween();
+                                        opacityTween.TweenMethod(
+                                            Callable.From<float>(UpdateShadowOpacity),
+                                            currentOpacity,
+                                            targetOpacity,
+                                            0.5f
+                                        );
+                                    }
                                 }
                             }
                             catch (Exception ex)
@@ -826,16 +874,19 @@ namespace Scenes
                                     .AsSingle();
 
                                 Tween distortTween = CreateTween();
+                                distortTween.SetTrans(Tween.TransitionType.Bounce);
+                                distortTween.SetEase(Tween.EaseType.Out);
+                                
                                 // Make sure we add the tween methods before using the tween
                                 distortTween.TweenMethod(
                                     Callable.From<float>(UpdateShadowDistortion),
                                     currentDistortion,
-                                    currentDistortion + 0.2f,
+                                    currentDistortion + 0.3f, // More extreme distortion
                                     0.5f
                                 );
                                 distortTween.TweenMethod(
                                     Callable.From<float>(UpdateShadowDistortion),
-                                    currentDistortion + 0.2f,
+                                    currentDistortion + 0.3f,
                                     currentDistortion,
                                     1.5f
                                 );
@@ -852,6 +903,118 @@ namespace Scenes
                             _random.Next(0, _effectSounds.Length),
                             -10.0f
                         );
+                        break;
+                        
+                    case 5:
+                        // Flickering light effect with sound
+                        ShaderMaterial flickerVignetteShader = _vignetteEffect.Material as ShaderMaterial;
+                        if (flickerVignetteShader != null)
+                        {
+                            // Play electrical interference sound
+                            PlayHorrorSound(HorrorSoundTheme.Effect, 3, -5.0f);
+                            
+                            // Create rapid flickering effect
+                            Tween flickerTween = CreateTween();
+                            flickerTween.SetTrans(Tween.TransitionType.Linear);
+                            
+                            // Store original values
+                            float originalPulse = _pulseIntensity;
+                            float originalOpacity = flickerVignetteShader.GetShaderParameter("vignette_opacity").AsSingle();
+                            
+                            // Create 8-10 rapid flickers
+                            int flickers = _random.Next(8, 11);
+                            for (int i = 0; i < flickers; i++)
+                            {
+                                // Randomize flicker intensity
+                                float pulseValue = (float)_random.NextDouble() * 0.8f + 0.2f;
+                                float opacityValue = (float)_random.NextDouble() * 0.4f + 0.4f;
+                                
+                                // Set pulse intensity directly
+                                flickerTween.TweenCallback(Callable.From(() => {
+                                    _pulseIntensity = pulseValue;
+                                    flickerVignetteShader.SetShaderParameter("vignette_opacity", opacityValue);
+                                }));
+                                
+                                // Short duration for each flicker
+                                flickerTween.TweenInterval(0.05f + (float)_random.NextDouble() * 0.1f);
+                            }
+                            
+                            // Reset to original values
+                            flickerTween.TweenCallback(Callable.From(() => {
+                                _pulseIntensity = originalPulse;
+                                flickerVignetteShader.SetShaderParameter("vignette_opacity", originalOpacity);
+                            }));
+                            
+                            // Add subtle background color flash
+                            if (_backgroundRect != null)
+                            {
+                                Tween bgFlashTween = CreateTween();
+                                Color originalColor = _backgroundRect.Color;
+                                
+                                // Flash to blueish-white
+                                bgFlashTween.TweenProperty(_backgroundRect, "color", new Color(0.2f, 0.2f, 0.3f), 0.1f);
+                                // Back to original
+                                bgFlashTween.TweenProperty(_backgroundRect, "color", originalColor, 0.3f);
+                            }
+                        }
+                        break;
+                        
+                    case 6:
+                        // Shadow figure appears briefly in a different position
+                        if (_shadowShader != null)
+                        {
+                            // Get current position and opacity
+                            Vector2 currentPos = _shadowShader
+                                .GetShaderParameter(PARAM_SHADOW_POSITION)
+                                .AsVector2();
+                            float currentOpacity = _shadowShader
+                                .GetShaderParameter(PARAM_SHADOW_OPACITY)
+                                .AsSingle();
+                            
+                            // Choose a random position at the edge of the screen
+                            Vector2 edgePos;
+                            int edge = _random.Next(4);
+                            switch (edge)
+                            {
+                                case 0: // Top
+                                    edgePos = new Vector2((float)_random.NextDouble() * 0.6f + 0.2f, 0.1f);
+                                    break;
+                                case 1: // Right
+                                    edgePos = new Vector2(0.9f, (float)_random.NextDouble() * 0.6f + 0.2f);
+                                    break;
+                                case 2: // Bottom
+                                    edgePos = new Vector2((float)_random.NextDouble() * 0.6f + 0.2f, 0.9f);
+                                    break;
+                                default: // Left
+                                    edgePos = new Vector2(0.1f, (float)_random.NextDouble() * 0.6f + 0.2f);
+                                    break;
+                            }
+                            
+                            // Play a distant sound
+                            PlayHorrorSound(HorrorSoundTheme.Effect, 2, -20.0f); // Very quiet distant sound
+                            
+                            // Create sequence: briefly appear at edge, then return to original position
+                            Tween shadowJumpTween = CreateTween();
+                            
+                            // First save original position
+                            Vector2 originalPos = currentPos;
+                            float originalOpacity = currentOpacity;
+                            
+                            // Jump to edge position and increase opacity
+                            shadowJumpTween.TweenCallback(Callable.From(() => {
+                                UpdateShadowPosition(edgePos);
+                                UpdateShadowOpacity(0.7f);
+                            }));
+                            
+                            // Hold briefly
+                            shadowJumpTween.TweenInterval(0.3f);
+                            
+                            // Return to original position and opacity
+                            shadowJumpTween.TweenCallback(Callable.From(() => {
+                                UpdateShadowPosition(originalPos);
+                                UpdateShadowOpacity(originalOpacity);
+                            }));
+                        }
                         break;
                 }
 
@@ -931,24 +1094,112 @@ namespace Scenes
             // Temporarily increase fog density
             if (_fogShader != null)
             {
-                _fogShader.SetShaderParameter(PARAM_FOG_DENSITY, 0.8f);
+                // Create a pulsating fog effect that syncs with siren
+                Tween fogPulseTween = CreateTween();
+                fogPulseTween.SetTrans(Tween.TransitionType.Sine);
+                fogPulseTween.SetEase(Tween.EaseType.InOut);
+                fogPulseTween.TweenMethod(
+                    Callable.From<float>(density => _fogShader.SetShaderParameter(PARAM_FOG_DENSITY, density)),
+                    0.3f, // Start with normal density
+                    0.9f, // Peak at very dense fog
+                    0.5f  // Duration of half a second (quick rise)
+                );
+                // Then pulse between high and medium values
+                for (int i = 0; i < 4; i++) // Create 4 pulses
+                {
+                    fogPulseTween.TweenMethod(
+                        Callable.From<float>(density => _fogShader.SetShaderParameter(PARAM_FOG_DENSITY, density)),
+                        0.9f, 
+                        0.6f,
+                        0.3f
+                    );
+                    fogPulseTween.TweenMethod(
+                        Callable.From<float>(density => _fogShader.SetShaderParameter(PARAM_FOG_DENSITY, density)),
+                        0.6f,
+                        0.9f,
+                        0.3f
+                    );
+                }
             }
 
             // Make shadow more visible and distorted
             if (_shadowShader != null)
             {
-                _shadowShader.SetShaderParameter(PARAM_SHADOW_OPACITY, 0.9f);
-                _shadowShader.SetShaderParameter(PARAM_DISTORTION, 0.5f);
+                // Dramatic shadow reveal
+                Tween shadowTween = CreateTween();
+                shadowTween.SetTrans(Tween.TransitionType.Cubic);
+                shadowTween.SetEase(Tween.EaseType.Out);
+                
+                // Rapidly increase opacity for jump scare effect
+                shadowTween.TweenMethod(
+                    Callable.From<float>(UpdateShadowOpacity),
+                    _shadowShader.GetShaderParameter(PARAM_SHADOW_OPACITY).AsSingle(),
+                    0.95f,
+                    0.3f
+                );
+                
+                // Extreme distortion during siren
+                shadowTween.TweenMethod(
+                    Callable.From<float>(UpdateShadowDistortion),
+                    _shadowShader.GetShaderParameter(PARAM_DISTORTION).AsSingle(),
+                    0.7f, // More extreme distortion
+                    0.2f
+                );
 
-                // Move shadow position slightly for a jump scare effect
+                // Move shadow position for a jump scare effect - make it appear closer
                 Vector2 currentPos = _shadowShader
                     .GetShaderParameter(PARAM_SHADOW_POSITION)
                     .AsVector2();
-                Vector2 newPos = new Vector2(
-                    currentPos.X + (float)_random.NextDouble() * 0.1f - 0.05f,
-                    currentPos.Y - 0.1f
+                
+                // First jerk to one side quickly
+                shadowTween.TweenMethod(
+                    Callable.From<Vector2>(UpdateShadowPosition),
+                    currentPos,
+                    new Vector2(currentPos.X + 0.15f, currentPos.Y - 0.15f),
+                    0.2f
                 );
-                _shadowShader.SetShaderParameter(PARAM_SHADOW_POSITION, newPos);
+                
+                // Then move closer to center in a threatening way
+                shadowTween.TweenMethod(
+                    Callable.From<Vector2>(UpdateShadowPosition),
+                    new Vector2(currentPos.X + 0.15f, currentPos.Y - 0.15f),
+                    new Vector2(0.5f, 0.4f), // Move toward center of screen
+                    0.8f
+                );
+            }
+
+            // Add screen shake effect
+            Tween screenShakeTween = CreateTween();
+            screenShakeTween.SetTrans(Tween.TransitionType.Sine);
+            Vector2 originalPosition = Position;
+            
+            // Create multiple rapid shakes
+            for (int i = 0; i < 10; i++)
+            {
+                float intensity = (10 - i) * 0.5f; // Decreasing intensity
+                Vector2 offset = new Vector2(
+                    (float)_random.NextDouble() * intensity - intensity/2,
+                    (float)_random.NextDouble() * intensity - intensity/2
+                );
+                screenShakeTween.TweenProperty(this, "position", originalPosition + offset, 0.05f);
+            }
+            // Return to original position
+            screenShakeTween.TweenProperty(this, "position", originalPosition, 0.1f);
+
+            // Add background color flash for siren effect
+            if (_backgroundRect != null)
+            {
+                Tween bgFlashTween = CreateTween();
+                bgFlashTween.SetTrans(Tween.TransitionType.Sine);
+                
+                // Flash to reddish color
+                bgFlashTween.TweenProperty(_backgroundRect, "color", new Color(0.3f, 0.01f, 0.02f), 0.2f);
+                // Back to dark
+                bgFlashTween.TweenProperty(_backgroundRect, "color", new Color(0.01f, 0.01f, 0.02f), 0.3f);
+                // Another flash
+                bgFlashTween.TweenProperty(_backgroundRect, "color", new Color(0.25f, 0.01f, 0.02f), 0.2f);
+                // Back to dark
+                bgFlashTween.TweenProperty(_backgroundRect, "color", new Color(0.01f, 0.01f, 0.02f), 0.5f);
             }
 
             // Schedule second siren after a delay
@@ -957,22 +1208,8 @@ namespace Scenes
             secondSirenTimer.OneShot = true;
             secondSirenTimer.Timeout += () =>
             {
-                if (_currentFrame < _storyFrames.Length) // Only play if still in intro scene
-                {
-                    PlayHorrorSound(HorrorSoundTheme.Siren);
-                    _pulseIntensity = 1.0f;
-
-                    // Second visual effect
-                    if (_shadowShader != null)
-                    {
-                        // Make shadow suddenly closer
-                        Vector2 currentPos = _shadowShader
-                            .GetShaderParameter(PARAM_SHADOW_POSITION)
-                            .AsVector2();
-                        Vector2 newPos = new Vector2(0.5f, currentPos.Y - 0.2f);
-                        _shadowShader.SetShaderParameter(PARAM_SHADOW_POSITION, newPos);
-                    }
-                }
+                // The PlaySirenSound method now handles all the visual effects
+                PlaySirenSound();
                 secondSirenTimer.QueueFree();
             };
             AddChild(secondSirenTimer);
@@ -1057,7 +1294,7 @@ namespace Scenes
                     shadowMoveTimer.OneShot = true;
                     shadowMoveTimer.Timeout += () =>
                     {
-                        if (_currentFrame == 0) // Only if still on first frame
+                        if (_currentFrame == 0) // Only play if still on this frame
                         {
                             try
                             {
