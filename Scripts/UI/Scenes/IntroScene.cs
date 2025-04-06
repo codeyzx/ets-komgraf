@@ -6,6 +6,19 @@ namespace Scenes
     /// <summary>
     /// A horror opening scene featuring the Batak mythology of Begu Ganjang.
     /// </summary>
+
+    /// <summary>
+    /// Simplified enumeration of horror sound themes for the intro scene
+    /// </summary>
+    public enum HorrorSoundTheme
+    {
+        Ambient, // Background atmospheric sounds
+        Effect, // Various horror effects (whispers, breathing, footsteps)
+        Siren, // Siren/alarm sounds (replacing jumpscare)
+        Typing, // Typing sound effects
+        Waiting, // Sound for "press enter to continue" state
+    }
+
     public partial class IntroScene : Control
     {
         // Text content for each frame
@@ -17,21 +30,115 @@ namespace Scenes
 
         // Enhanced background properties
         private ColorRect _backgroundRect;
-        private TextureRect _noiseTexture;
+        private ColorRect _noiseTexture;
         private ColorRect _vignetteEffect;
         private ShaderMaterial _backgroundShader;
 
         // UI elements
         private Label _textLabel;
         private AnimationPlayer _animationPlayer;
-        private TextureRect _fogEffect;
-        private TextureRect _shadowFigure;
+        private ColorRect _fogEffect; // Using ColorRect instead of TextureRect
+        private ColorRect _shadowFigure; // Using ColorRect instead of TextureRect
         private AudioStreamPlayer _ambientSound;
         private AudioStreamPlayer _effectSound;
         private AudioStreamPlayer _typingSound;
+        private AudioStreamPlayer _sirenSound; // Renamed from jumpscare to siren
+        private AudioStreamPlayer _waitingSound; // Sound for "press enter to continue" state
         private Timer _typeTimer;
         private Timer _pulseTimer;
+        private Timer _horrorEffectTimer; // Timer for random horror effects
+        private Timer _sirenTimer; // Timer for playing siren sounds periodically
         private Tween _shadowTween;
+        private ShaderMaterial _fogShader; // Shader for fog effect
+        private ShaderMaterial _shadowShader; // Shader for shadow effect
+
+        // Simplified sound paths - update these with your actual sound file paths
+        private readonly string[] _ambientSounds = new string[]
+        {
+            "res://Assets/Sounds/wind_howl.mp3",
+            "res://Assets/Sounds/creaking.mp3",
+        };
+
+        private readonly string[] _effectSounds = new string[]
+        {
+            "res://Assets/Sounds/whisper.mp3", // Whispers
+            "res://Assets/Sounds/breath.mp3", // Breathing
+            "res://Assets/Sounds/sudden_noise.mp3", // Voices
+        };
+
+        private readonly string[] _sirenSounds = new string[]
+        {
+            "res://Assets/Sounds/siren.mp3", // Replace with actual siren sound path
+            "res://Assets/Sounds/alarm.mp3", // Replace with actual alarm sound path
+        };
+
+        private readonly string[] _waitingSounds = new string[]
+        {
+            "res://Assets/Sounds/wait_for_key.mp3", // Replace with actual waiting sound path
+            "res://Assets/Sounds/heartbeat.mp3", // Replace with actual heartbeat sound path
+        };
+
+        private readonly string[] _typingSounds = new string[]
+        {
+            "res://Assets/Sounds/typing.mp3",
+            "res://Assets/Sounds/typing.mp3",
+        };
+
+        // Shader code for procedural horror effects
+        private const string FogShaderCode =
+            @"
+            shader_type canvas_item;
+            
+            uniform float density: hint_range(0.0, 1.0) = 0.5;
+            uniform float time_scale: hint_range(0.0, 2.0) = 0.2;
+            uniform vec4 fog_color: source_color = vec4(0.0, 0.0, 0.02, 1.0);
+            
+            float random(vec2 uv) {
+                return fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453123);
+            }
+            
+            void fragment() {
+                vec2 uv = SCREEN_UV;
+                float noise = random(uv + TIME * time_scale);
+                
+                // Create swirling fog effect
+                float fog_factor = sin(uv.x * 10.0 + TIME * 0.5) * sin(uv.y * 10.0 + TIME * 0.3) * density;
+                fog_factor = clamp(fog_factor + noise * 0.1, 0.0, 1.0);
+                
+                COLOR = mix(vec4(0.0), fog_color, fog_factor);
+            }
+        ";
+
+        private const string ShadowShaderCode =
+            @"
+            shader_type canvas_item;
+            
+            uniform float shadow_intensity: hint_range(0.0, 1.0) = 0.8;
+            uniform float distortion: hint_range(0.0, 5.0) = 1.5;
+            uniform float time_scale: hint_range(0.0, 1.0) = 0.1;
+            
+            void fragment() {
+                vec2 uv = SCREEN_UV;
+                
+                // Create distorted shadow shape
+                float shadow = 0.0;
+                vec2 center = vec2(0.5, 0.5);
+                float dist = length(uv - center);
+                
+                // Tall humanoid shape
+                float body = smoothstep(0.1, 0.12, abs(uv.x - 0.5)) * smoothstep(0.0, 0.5, 1.0 - uv.y);
+                
+                // Add distortion
+                float time_offset = TIME * time_scale;
+                float distort_x = sin(uv.y * 20.0 + time_offset) * distortion * 0.01;
+                float distort_y = cos(uv.x * 20.0 + time_offset) * distortion * 0.01;
+                
+                shadow = 1.0 - body - distort_x - distort_y;
+                shadow = clamp(shadow, 0.0, 1.0) * shadow_intensity;
+                
+                COLOR = vec4(0.0, 0.0, 0.0, shadow);
+            }
+        ";
 
         // State variables
         private int _currentFrame = 0;
@@ -77,7 +184,7 @@ namespace Scenes
 
         private void InitializeUI()
         {
-            // Create a more terrifying background
+            // Create a terrifying background with procedural effects
             _backgroundRect = new ColorRect
             {
                 Color = new Color(0.01f, 0.01f, 0.02f),
@@ -85,66 +192,110 @@ namespace Scenes
                 AnchorBottom = 1,
             };
 
-            // Add noise texture for a grainy effect
-            _noiseTexture = new TextureRect
+            // Create procedural noise effect
+            ShaderMaterial noiseShader = new ShaderMaterial();
+            noiseShader.Shader = new Shader()
+            {
+                Code =
+                    @"
+                shader_type canvas_item;
+                
+                uniform float noise_density: hint_range(0.0, 1.0) = 0.05;
+                uniform float time_scale: hint_range(0.0, 2.0) = 0.1;
+                
+                float random(vec2 uv) {
+                    return fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453123);
+                }
+                
+                void fragment() {
+                    vec2 uv = SCREEN_UV;
+                    float noise = random(uv * 500.0 + TIME * time_scale);
+                    COLOR = vec4(noise * noise_density);
+                }
+            ",
+            };
+
+            _noiseTexture = new ColorRect
             {
                 AnchorRight = 1,
                 AnchorBottom = 1,
-                Modulate = new Color(1, 1, 1, 0.1f),
+                Material = noiseShader,
             };
-            // _noiseTexture.Texture = ResourceLoader.Load<Texture2D>("res://path_to_noise_texture.png");
 
-            // Add vignette effect
+            // Create procedural vignette effect
+            ShaderMaterial vignetteShader = new ShaderMaterial();
+            vignetteShader.Shader = new Shader()
+            {
+                Code =
+                    @"
+                shader_type canvas_item;
+                
+                uniform float vignette_intensity: hint_range(0.0, 5.0) = 0.4;
+                uniform float vignette_opacity: hint_range(0.0, 1.0) = 0.5;
+                uniform vec4 vignette_color: source_color = vec4(0.0, 0.0, 0.0, 1.0);
+                
+                void fragment() {
+                    vec2 uv = SCREEN_UV;
+                    vec2 center = vec2(0.5, 0.5);
+                    float dist = length(uv - center);
+                    
+                    // Create pulsing vignette
+                    float vignette = smoothstep(0.8, 0.2, dist * (vignette_intensity + sin(TIME * 0.2) * 0.1));
+                    vignette = pow(vignette, 2.0) * vignette_opacity;
+                    
+                    COLOR = mix(vec4(0.0), vignette_color, 1.0 - vignette);
+                }
+            ",
+            };
+
             _vignetteEffect = new ColorRect
             {
                 AnchorRight = 1,
                 AnchorBottom = 1,
-                Material = new ShaderMaterial(),
+                Material = vignetteShader,
             };
-            // _vignetteEffect.Material.Shader = ResourceLoader.Load<Shader>("res://path_to_vignette_shader.shader");
 
-            // Add shadow figure
-            _shadowFigure = new TextureRect
-            {
-                AnchorLeft = 0.5f,
-                AnchorTop = 0.5f,
-                AnchorRight = 0.5f,
-                AnchorBottom = 0.5f,
-                Modulate = new Color(1, 1, 1, 0),
-                Scale = new Vector2(0.5f, 0.5f),
-            };
-            // _shadowFigure.Texture = ResourceLoader.Load<Texture2D>("res://path_to_shadow_texture.png");
+            // Create procedural fog effect
+            _fogShader = new ShaderMaterial();
+            _fogShader.Shader = new Shader() { Code = FogShaderCode };
 
-            // Fog effect texture
-            _fogEffect = new TextureRect
+            _fogEffect = new ColorRect
             {
                 AnchorRight = 1,
                 AnchorBottom = 1,
-                Modulate = new Color(1, 1, 1, 0.2f),
+                Material = _fogShader,
             };
-            // Note: You'll need to set the texture in the editor or load it from a file
-            // _fogEffect.Texture = ResourceLoader.Load<Texture2D>("res://path_to_fog_texture.png");
 
-            // Text label for the story
+            // Create procedural shadow figure
+            _shadowShader = new ShaderMaterial();
+            _shadowShader.Shader = new Shader() { Code = ShadowShaderCode };
+
+            _shadowFigure = new ColorRect
+            {
+                AnchorRight = 1,
+                AnchorBottom = 1,
+                Material = _shadowShader,
+                Modulate = new Color(1, 1, 1, 0),
+            };
+
+            // Text label for story
             _textLabel = new Label
             {
                 AnchorRight = 1,
                 AnchorBottom = 1,
+                Text = "",
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
-                AutowrapMode = TextServer.AutowrapMode.Word,
-                Text = "",
-                Modulate = new Color(0.8f, 0.8f, 0.8f), // Slightly gray text
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                Modulate = new Color(0.9f, 0.9f, 0.95f),
             };
 
-            // Set up custom font and size
-            // Note: You'll need to load the font in the editor or from a file
-            // _textLabel.AddThemeFont("font", ResourceLoader.Load<Font>("res://path_to_creepy_font.ttf"));
-            // _textLabel.AddThemeFontSize("font_size", 24);
-
-            // Add padding around the text
+            // Set custom font
+            // _textLabel.AddThemeFontOverride("font", ResourceLoader.Load<Font>("res://path_to_horror_font.ttf"));
+            _textLabel.AddThemeFontSizeOverride("font_size", 24);
             _textLabel.Position = new Vector2(50, 50);
-            // Use set_deferred untuk menghindari warning non-equal opposite anchors
+
+            // Use set_deferred to avoid warning non-equal opposite anchors
             _textLabel.SetDeferred(
                 "size",
                 new Vector2(GetViewportRect().Size.X - 100, GetViewportRect().Size.Y - 100)
@@ -152,46 +303,51 @@ namespace Scenes
 
             // Animation player for various effects
             _animationPlayer = new AnimationPlayer();
-            AddChild(_animationPlayer);
 
-            // Sound players
-            _ambientSound = new AudioStreamPlayer();
-            // _ambientSound.Stream = ResourceLoader.Load<AudioStream>("res://path_to_ambient_sound.wav");
-            _ambientSound.VolumeDb = -10; // Lower volume
-            AddChild(_ambientSound);
+            // Simplified audio players with horror-themed configuration
+            _ambientSound = new AudioStreamPlayer { VolumeDb = 3.0f, Bus = "Ambient" };
+            _effectSound = new AudioStreamPlayer { VolumeDb = -5.0f, Bus = "Effects" };
+            _typingSound = new AudioStreamPlayer { VolumeDb = 5f, Bus = "UI" };
+            _sirenSound = new AudioStreamPlayer { VolumeDb = -5.0f, Bus = "Effects" };
+            _waitingSound = new AudioStreamPlayer { VolumeDb = 10.0f, Bus = "UI" };
 
-            _effectSound = new AudioStreamPlayer();
-            // _effectSound.Stream = ResourceLoader.Load<AudioStream>("res://path_to_effect_sound.wav");
-            _effectSound.VolumeDb = -5;
-            AddChild(_effectSound);
-
-            // Typing sound
-            _typingSound = new AudioStreamPlayer
-            {
-                Stream = ResourceLoader.Load<AudioStream>("res://Assets/Sounds/typing.wav"),
-                VolumeDb = -15,
-                PitchScale = 0.9f,
-            };
-            AddChild(_typingSound);
+            // Timer for random horror effects
+            _horrorEffectTimer = new Timer { WaitTime = 5.0f, OneShot = false };
+            _horrorEffectTimer.Timeout += OnHorrorEffectTimeout;
 
             // Timer for typing effect
             _typeTimer = new Timer { WaitTime = _typingSpeed, OneShot = true };
             _typeTimer.Timeout += OnTypeTimerTimeout;
-            AddChild(_typeTimer);
 
             // Timer for pulsing light effect
             _pulseTimer = new Timer { WaitTime = 0.05f, OneShot = false };
             _pulseTimer.Timeout += OnPulseTimerTimeout;
-            AddChild(_pulseTimer);
             _pulseTimer.Start();
 
-            // Add all elements to scene
+            // Add all elements to the scene
             AddChild(_backgroundRect);
             AddChild(_noiseTexture);
             AddChild(_vignetteEffect);
-            AddChild(_shadowFigure);
             AddChild(_fogEffect);
+            AddChild(_shadowFigure);
             AddChild(_textLabel);
+            AddChild(_ambientSound);
+            AddChild(_effectSound);
+            AddChild(_typingSound);
+            AddChild(_sirenSound);
+            AddChild(_waitingSound);
+            AddChild(_typeTimer);
+            AddChild(_pulseTimer);
+            AddChild(_horrorEffectTimer);
+            AddChild(_animationPlayer);
+
+            // Initialize siren timer
+            _sirenTimer = new Timer { WaitTime = 15.0f, OneShot = true };
+            _sirenTimer.Timeout += PlaySirenSound;
+            AddChild(_sirenTimer);
+
+            // Start the horror effect timer
+            _horrorEffectTimer.Start();
         }
 
         private void StartFrame(int frameIndex)
@@ -227,7 +383,7 @@ namespace Scenes
                 _textLabel.Text = _storyFrames[_currentFrame].Substring(0, _currentCharIndex);
 
                 // Play typing sound
-                _typingSound.Play();
+                PlayTypingSound();
 
                 // Add random pauses for dramatic effect
                 float nextTypeDelay = _typingSpeed;
@@ -307,6 +463,9 @@ namespace Scenes
             // Disable advancement until next frame is ready
             _canAdvance = false;
 
+            // Stop the waiting sound
+            _waitingSound.Stop();
+
             _currentFrame++;
 
             if (_currentFrame < _storyFrames.Length)
@@ -339,6 +498,19 @@ namespace Scenes
             // This could be implemented with a separate Label and AnimationPlayer
             // For simplicity, we'll just append it to the current text with a delay
             CallDeferred(nameof(AppendContinueHint));
+
+            // Stop typing sound
+            _typingSound.Stop();
+
+            // Play waiting sound in a loop
+            PlayHorrorSound(HorrorSoundTheme.Waiting);
+
+            // Make the waiting sound loop
+            _waitingSound.Finished += () =>
+            {
+                if (_canAdvance) // Only replay if we're still waiting for input
+                    PlayHorrorSound(HorrorSoundTheme.Waiting);
+            };
         }
 
         private void AppendContinueHint()
@@ -346,39 +518,244 @@ namespace Scenes
             _textLabel.Text += "\n\n[Press Enter to continue]";
         }
 
+        /// <summary>
+        /// Plays a sound effect from the specified horror theme
+        /// </summary>
+        /// <param name="theme">The horror sound theme to play</param>
+        /// <param name="soundIndex">Optional index to select a specific sound from the theme (default: random)</param>
+        /// <param name="volume">Optional volume adjustment in decibels (default: 0)</param>
+        private void PlayHorrorSound(HorrorSoundTheme theme, int soundIndex = -1, float volume = 0f)
+        {
+            string[] soundOptions;
+            AudioStreamPlayer targetPlayer;
+
+            // Select the appropriate sound array and player based on theme
+            switch (theme)
+            {
+                case HorrorSoundTheme.Ambient:
+                    soundOptions = _ambientSounds;
+                    targetPlayer = _ambientSound;
+                    break;
+                case HorrorSoundTheme.Effect:
+                    soundOptions = _effectSounds;
+                    targetPlayer = _effectSound;
+                    break;
+                case HorrorSoundTheme.Siren:
+                    soundOptions = _sirenSounds;
+                    targetPlayer = _sirenSound;
+                    break;
+                case HorrorSoundTheme.Typing:
+                    soundOptions = _typingSounds;
+                    targetPlayer = _typingSound;
+                    break;
+                case HorrorSoundTheme.Waiting:
+                    soundOptions = _waitingSounds;
+                    targetPlayer = _waitingSound;
+                    break;
+                default:
+                    soundOptions = _ambientSounds;
+                    targetPlayer = _ambientSound;
+                    break;
+            }
+
+            // If no sounds are available for this theme, return
+            if (soundOptions.Length == 0)
+                return;
+
+            // Determine which sound to play
+            int index = soundIndex;
+            if (index < 0 || index >= soundOptions.Length)
+            {
+                // Pick a random sound if index is invalid
+                index = _random.Next(0, soundOptions.Length);
+            }
+
+            // Load and play the sound
+            string soundPath = soundOptions[index];
+            try
+            {
+                targetPlayer.Stream = ResourceLoader.Load<AudioStream>(soundPath);
+                float originalVolume = targetPlayer.VolumeDb;
+                targetPlayer.VolumeDb += volume; // Apply volume adjustment
+                targetPlayer.Play();
+
+                // Reset volume after playing
+                if (volume != 0f)
+                {
+                    Timer resetVolumeTimer = new Timer();
+                    resetVolumeTimer.WaitTime = 0.1f;
+                    resetVolumeTimer.OneShot = true;
+                    resetVolumeTimer.Timeout += () =>
+                    {
+                        targetPlayer.VolumeDb = originalVolume;
+                        resetVolumeTimer.QueueFree();
+                    };
+                    AddChild(resetVolumeTimer);
+                    resetVolumeTimer.Start();
+                }
+            }
+            catch (Exception e)
+            {
+                GD.PrintErr($"Failed to load sound: {soundPath}. Error: {e.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Handler for the horror effect timer - creates random horror effects
+        /// </summary>
+        private void OnHorrorEffectTimeout()
+        {
+            // Only create random effects if we're in the intro scene
+            if (_currentFrame >= _storyFrames.Length)
+                return;
+
+            // Random horror effect selection
+            float rand = (float)_random.NextDouble();
+
+            if (rand < 0.3f)
+            {
+                // Play a random horror sound effect
+                PlayHorrorSound(HorrorSoundTheme.Effect);
+
+                // Increase pulse intensity for visual effect
+                _pulseIntensity = Math.Min(_pulseIntensity + 0.2f, 0.8f);
+            }
+            else if (rand < 0.4f)
+            {
+                // Distort the shadow figure temporarily
+                if (_shadowShader != null && _shadowFigure.Modulate.A > 0)
+                {
+                    float currentDistortion = _shadowShader
+                        .GetShaderParameter("distortion")
+                        .AsSingle();
+                    _shadowShader.SetShaderParameter("distortion", currentDistortion * 3.0f);
+
+                    // Reset after a short time
+                    Timer resetTimer = new Timer();
+                    resetTimer.WaitTime = 0.5f;
+                    resetTimer.OneShot = true;
+                    resetTimer.Timeout += () =>
+                    {
+                        _shadowShader.SetShaderParameter("distortion", currentDistortion);
+                        resetTimer.QueueFree();
+                    };
+                    AddChild(resetTimer);
+                    resetTimer.Start();
+                }
+            }
+            else if (rand < 0.5f)
+            {
+                // Increase fog density temporarily
+                if (_fogShader != null)
+                {
+                    float currentDensity = _fogShader.GetShaderParameter("density").AsSingle();
+                    _fogShader.SetShaderParameter("density", Math.Min(currentDensity * 2.0f, 0.9f));
+
+                    // Reset after a short time
+                    Timer resetTimer = new Timer();
+                    resetTimer.WaitTime = 1.0f;
+                    resetTimer.OneShot = true;
+                    resetTimer.Timeout += () =>
+                    {
+                        _fogShader.SetShaderParameter("density", currentDensity);
+                        resetTimer.QueueFree();
+                    };
+                    AddChild(resetTimer);
+                    resetTimer.Start();
+                }
+            }
+
+            // Randomize the next effect interval
+            _horrorEffectTimer.WaitTime = 3.0f + (float)_random.NextDouble() * 7.0f;
+            _horrorEffectTimer.Start();
+        }
+
         private void PlayFrameAmbientSound(int frameIndex)
         {
-            // Stop any currently playing sounds
+            // Stop any currently playing ambient sounds and waiting sound
             _ambientSound.Stop();
-            _effectSound.Stop();
+            _waitingSound.Stop();
 
             // Play appropriate ambient sound based on the frame
             switch (frameIndex)
             {
                 case 0:
-                    // Frame 1: Distant whispers or ancient ritual sounds
-                    // _ambientSound.Stream = ResourceLoader.Load<AudioStream>("res://path_to_whispers_sound.wav");
-                    _ambientSound.Stream = ResourceLoader.Load<AudioStream>(
-                        "res://Assets/Sounds/whisper.mp3"
-                    );
+                    // Frame 1: Ambient sounds with occasional whispers
+                    PlayHorrorSound(HorrorSoundTheme.Ambient, 0);
+
+                    // Schedule occasional whisper effects
+                    Timer whisperTimer = new Timer();
+                    whisperTimer.WaitTime = 5.0f;
+                    whisperTimer.OneShot = false;
+                    whisperTimer.Timeout += () =>
+                    {
+                        if (_currentFrame == 0) // Only play if still on this frame
+                        {
+                            PlayHorrorSound(HorrorSoundTheme.Effect, 0, -5.0f); // Whisper sound
+                            whisperTimer.WaitTime = 4.0f + (float)_random.NextDouble() * 8.0f; // Random interval
+                            whisperTimer.Start();
+                        }
+                        else
+                            whisperTimer.QueueFree();
+                    };
+                    AddChild(whisperTimer);
+                    whisperTimer.Start();
+
+                    // Schedule first siren sound after a delay
+                    _sirenTimer.WaitTime = 8.0f;
+                    _sirenTimer.Start();
                     break;
+
                 case 1:
-                    // Frame 2: Heavy breathing and distant scream
-                    _ambientSound.Stream = ResourceLoader.Load<AudioStream>(
-                        "res://Assets/Sounds/breath.mp3"
-                    );
+                    // Frame 2: More intense ambient with breathing effects
+                    PlayHorrorSound(HorrorSoundTheme.Ambient, 1);
+
+                    // Add breathing sound
+                    PlayHorrorSound(HorrorSoundTheme.Effect, 1); // Breathing sound
+
+                    // Schedule first siren sound after a delay
+                    _sirenTimer.WaitTime = 5.0f;
+                    _sirenTimer.Start();
                     break;
             }
+        }
 
-            _ambientSound.Play();
+        /// <summary>
+        /// Plays siren sound and schedules the second siren
+        /// </summary>
+        private void PlaySirenSound()
+        {
+            // Play siren sound
+            PlayHorrorSound(HorrorSoundTheme.Siren);
+
+            // Increase pulse intensity for visual effect
+            _pulseIntensity = 1.0f;
+
+            // Schedule second siren after a delay
+            Timer secondSirenTimer = new Timer();
+            secondSirenTimer.WaitTime = 3.0f;
+            secondSirenTimer.OneShot = true;
+            secondSirenTimer.Timeout += () =>
+            {
+                if (_currentFrame < _storyFrames.Length) // Only play if still in intro scene
+                {
+                    PlayHorrorSound(HorrorSoundTheme.Siren);
+                    _pulseIntensity = 1.0f;
+                }
+                secondSirenTimer.QueueFree();
+            };
+            AddChild(secondSirenTimer);
+            secondSirenTimer.Start();
         }
 
         private void PlayTypingSound()
         {
-            // Play a subtle typing sound effect
-            // Vary the pitch slightly for more organic feel
-            _effectSound.PitchScale = 0.9f + (float)_random.NextDouble() * 0.2f;
-            _effectSound.Play();
+            // Play a horror-themed typing sound
+            // Vary the pitch slightly for more organic and creepy feel
+            _typingSound.PitchScale = 0.85f + (float)_random.NextDouble() * 0.3f;
+
+            // Use the horror typing sounds with randomized selection
+            PlayHorrorSound(HorrorSoundTheme.Typing);
         }
 
         private void AnimateShadowFigure(int frameIndex)
@@ -462,6 +839,56 @@ namespace Scenes
                         GetViewportRect().Size.Y * 0.6f,
                         0.5f
                     );
+
+                    // Schedule a siren sound at the exact moment of the sudden movement
+                    Timer sirenEffectTimer = new Timer();
+                    sirenEffectTimer.WaitTime = 15.0f;
+                    sirenEffectTimer.OneShot = true;
+                    sirenEffectTimer.Timeout += () =>
+                    {
+                        PlayHorrorSound(HorrorSoundTheme.Siren);
+
+                        // Increase pulse intensity for visual effect
+                        _pulseIntensity = 1.0f;
+
+                        // Temporarily increase fog density for added effect
+                        if (_fogShader != null)
+                        {
+                            float currentDensity = _fogShader
+                                .GetShaderParameter("density")
+                                .AsSingle();
+                            _fogShader.SetShaderParameter("density", 0.9f);
+
+                            // Reset after a short time
+                            Timer resetTimer = new Timer();
+                            resetTimer.WaitTime = 1.5f;
+                            resetTimer.OneShot = true;
+                            resetTimer.Timeout += () =>
+                            {
+                                _fogShader.SetShaderParameter("density", currentDensity);
+                                resetTimer.QueueFree();
+                            };
+                            AddChild(resetTimer);
+                            resetTimer.Start();
+                        }
+
+                        // Schedule second siren after a delay
+                        Timer secondSirenTimer = new Timer();
+                        secondSirenTimer.WaitTime = 3.0f;
+                        secondSirenTimer.OneShot = true;
+                        secondSirenTimer.Timeout += () =>
+                        {
+                            PlayHorrorSound(HorrorSoundTheme.Siren);
+                            _pulseIntensity = 1.0f;
+                            secondSirenTimer.QueueFree();
+                        };
+                        AddChild(secondSirenTimer);
+                        secondSirenTimer.Start();
+
+                        sirenEffectTimer.QueueFree();
+                    };
+                    AddChild(sirenEffectTimer);
+                    sirenEffectTimer.Start();
                     break;
             }
         }
@@ -483,6 +910,13 @@ namespace Scenes
 
         private void EndIntroSequence()
         {
+            // Stop all sounds before ending
+            _ambientSound.Stop();
+            _effectSound.Stop();
+            _typingSound.Stop();
+            _sirenSound.Stop();
+            _waitingSound.Stop();
+
             // Skip all animations and transitions, immediately queue free this scene
             // This will trigger the TreeExiting signal which Karya3 is listening for
             QueueFree();
