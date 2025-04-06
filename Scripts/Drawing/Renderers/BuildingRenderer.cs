@@ -34,15 +34,12 @@ namespace Drawing.Renderers
         private bool _showLadder = false;
         private float _animationTime = 0f;
         private float _animationSpeed = 1f;
-        private float _rotationSpeed = 0f;
-        private float _scaleSpeed = 0f;
         private bool _animationEnabled = false;
         private int _animationStage = 0;
         private int _rotationType = 0; // 0: Normal, 1: Reverse, 2: Oscillating
 
         // Horror effects
         private float _flickerEffect = 0f;
-        private float _fogEffect = 0f;
         private readonly Random _random = new();
         private readonly List<Vector2> _fogParticles = [];
         private readonly List<int> _fogParticleTypes = []; // Type of each particle (0-5)
@@ -194,8 +191,8 @@ namespace Drawing.Renderers
                 _config.SecondaryColor,
                 _config.OutlineColor,
                 _config.OutlineThickness,
-                _config.LadderWidth,
-                _config.LadderLength
+                _config.LadderLength,
+                _config.IsLadderAnimating
             );
         }
 
@@ -656,7 +653,16 @@ namespace Drawing.Renderers
                             - 20 * _scaleFactor;
                         float startY =
                             _dimensions.RoofBaseY + _dimensions.WallHeight * _scaleFactor;
-                        Vector2 startPosition = new Vector2(rightEdgeX - 30 * _scaleFactor, startY);
+                        Vector2 startPosition = new Vector2(
+                            rightEdgeX
+                                + (
+                                    DisplayServer.WindowGetMode()
+                                    != DisplayServer.WindowMode.Fullscreen
+                                        ? 20 * _scaleFactor
+                                        : -30 * _scaleFactor
+                                ),
+                            startY
+                        );
                         float targetX =
                             _dimensions.HousePosition.X
                             + _dimensions.HouseWidth
@@ -1016,22 +1022,6 @@ namespace Drawing.Renderers
         public void SetAnimationSpeed(float speed)
         {
             _animationSpeed = Math.Max(0.1f, Math.Min(5.0f, speed));
-        }
-
-        /// <summary>
-        /// Sets the rotation speed for the final animation.
-        /// </summary>
-        public void SetRotationSpeed(float speed)
-        {
-            _rotationSpeed = speed;
-        }
-
-        /// <summary>
-        /// Sets the scale speed for the final animation.
-        /// </summary>
-        public void SetScaleSpeed(float speed)
-        {
-            _scaleSpeed = speed;
         }
 
         /// <summary>

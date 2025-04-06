@@ -27,8 +27,8 @@ namespace Drawing.Configuration
         public int WindowLineCount { get; set; } = 7;
 
         // Ladder configuration
-        public float LadderWidth { get; set; } = 15;
         public float LadderLength { get; set; } = 70;
         public int LadderStepCount { get; set; } = 5;
+        public bool IsLadderAnimating { get; set; } = false;
     }
 }

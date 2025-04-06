@@ -107,13 +107,6 @@ namespace Scenes
         }
 
         [Export]
-        private float LadderWidth
-        {
-            get => _config.LadderWidth;
-            set => _config.LadderWidth = value;
-        }
-
-        [Export]
         private float LadderLength
         {
             get => _config.LadderLength;

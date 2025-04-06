@@ -27,6 +27,7 @@ namespace Scenes
             PanelCount = 8, // Added to match Karya2
             ColumnCount = 9, // Added to match Karya2
             LadderLength = 80,
+            IsLadderAnimating = true,
         };
 
         // UI controls

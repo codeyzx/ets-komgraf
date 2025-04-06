@@ -14,7 +14,6 @@ namespace Drawing.Renderers
         private readonly CanvasItem _canvas;
         private readonly Primitif _primitif;
         private readonly BuildingConfiguration _config;
-
         private Vector2 _center;
         private float _scaleFactor;
         private BuildingDimensions _dimensions;
@@ -328,7 +327,10 @@ namespace Drawing.Renderers
             // Starting position for the ladder (right side of the building)
             float rightEdgeX =
                 _dimensions.HousePosition.X + _dimensions.HouseWidth - 20 * _scaleFactor;
-            float startY = _dimensions.RoofBaseY + _dimensions.WallHeight * _scaleFactor;
+            float startY =
+                _dimensions.RoofBaseY
+                + ladderLength
+                + (!_config.IsLadderAnimating ? 30 * _scaleFactor : 40 * _scaleFactor);
 
             // Calculate end points of the ladder with steeper angle
             Vector2 ladderStart = new Vector2(rightEdgeX - 30 * _scaleFactor, startY);

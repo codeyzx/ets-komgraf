@@ -47,9 +47,6 @@ namespace Scenes
 
         // Ladder configuration
         [Export]
-        private float LadderWidth { get; set; } = 15;
-
-        [Export]
         private float LadderLength { get; set; } = 70;
 
         [Export]
@@ -85,9 +82,9 @@ namespace Scenes
             _config.PanelCount = PanelCount;
             _config.ColumnCount = ColumnCount;
             _config.WindowLineCount = WindowLineCount;
-            _config.LadderWidth = LadderWidth;
             _config.LadderLength = LadderLength;
             _config.LadderStepCount = LadderStepCount;
+            _config.IsLadderAnimating = true;
         }
 
         /// <summary>

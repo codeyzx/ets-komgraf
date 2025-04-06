@@ -14,8 +14,8 @@ namespace Drawing.Components.Structures
         private readonly Color _secondaryColor;
         private readonly Color _outlineColor;
         private readonly float _outlineThickness;
-        private readonly float _ladderWidth;
         private readonly float _ladderLength;
+        private readonly bool _isLadderAnimating;
 
         /// <summary>
         /// Initializes a new instance of the LadderComponent class.
@@ -28,16 +28,16 @@ namespace Drawing.Components.Structures
             Color secondaryColor,
             Color outlineColor,
             float outlineThickness,
-            float ladderWidth,
-            float ladderLength
+            float ladderLength,
+            bool isLadderAnimating
         )
             : base(canvas, primitif, dimensions, scaleFactor)
         {
             _secondaryColor = secondaryColor;
             _outlineColor = outlineColor;
             _outlineThickness = outlineThickness;
-            _ladderWidth = ladderWidth;
             _ladderLength = ladderLength;
+            _isLadderAnimating = isLadderAnimating;
         }
 
         /// <summary>
@@ -46,25 +46,36 @@ namespace Drawing.Components.Structures
         public override void Draw()
         {
             // Position the ladder on the right side
-            float ladderWidth = _ladderWidth * ScaleFactor;
             float ladderLength = _ladderLength * ScaleFactor;
 
-            // Starting position for the ladder (right side of the building)
+            // Use percentages of building dimensions rather than fixed offsets
             float rightEdgeX =
-                Dimensions.HousePosition.X + Dimensions.HouseWidth - 20 * ScaleFactor;
-            float startY = Dimensions.RoofBaseY + Dimensions.WallHeight * ScaleFactor;
+                Dimensions.HousePosition.X + Dimensions.HouseWidth - (20 * ScaleFactor);
 
-            // Calculate end points of the ladder with steeper angle
-            Vector2 ladderStart = new Vector2(rightEdgeX - 30 * ScaleFactor, startY);
+            // Start from the base of the roof plus an additional offset to move it lower
+            float startY =
+                Dimensions.RoofBaseY
+                + ladderLength
+                + (
+                    _isLadderAnimating
+                        ? DisplayServer.WindowGetMode() == DisplayServer.WindowMode.Fullscreen
+                            ? 40 * ScaleFactor
+                            : 30 * ScaleFactor
+                        : 40 * ScaleFactor
+                ); // Added 50 units offset
+
+            // Calculate ladder start and end points using relative positioning
+            Vector2 ladderStart = new Vector2(rightEdgeX - (30 * ScaleFactor), startY);
+
+            // Create consistent end point that scales properly with the viewport
             Vector2 ladderEnd = new Vector2(
                 rightEdgeX + ladderLength,
-                startY + ladderLength * 1.5f
+                startY + (ladderLength * 1.5f) // Increased multiplier to 1.5f for steeper angle
             );
 
-            // Calculate second rail slightly offset from the first
             Vector2 railOffset = new Vector2(0, 10 * ScaleFactor);
 
-            // Draw fill polygon for the ladder (to match the red color in the image)
+            // Draw fill polygon for the ladder
             List<Vector2> ladderPolygon = new List<Vector2>
             {
                 ladderStart,

@@ -32,7 +32,6 @@ namespace Drawing.Components.Characters
 
         #region Animation Parameters
         private float _moveSpeed = 100f;
-        private float _rotationSpeed = 2f;
         private float _scaleSpeed = 1f;
 
         // Floating animation
@@ -66,7 +65,6 @@ namespace Drawing.Components.Characters
 
         // Head animation
         private float _headHoverDistance = 0f;
-        private float _headTiltAmount = 0f;
         #endregion
 
         #region Body Proportions
