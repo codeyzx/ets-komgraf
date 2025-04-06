@@ -11,9 +11,7 @@ namespace Scenes
         private TextureRect _pattern;
         private Control _mouseEffectContainer;
         private AudioStreamPlayer _backgroundMusic;
-        private AudioStreamPlayer _jumpscareSound;
         private Timer _flickerTimer;
-        private Timer _jumpscareTimer;
         private ShaderMaterial _backgroundMaterial;
         private ShaderMaterial _patternMaterial;
         private Label _titleLabel;
@@ -28,6 +26,7 @@ namespace Scenes
         // Audio players
         private AudioStreamPlayer _heartbeatSound;
         private AudioStreamPlayer _sirenSound;
+        private AudioStreamPlayer _hoverSound;
 
         // Timer for effects
         private Timer _effectTimer;
@@ -42,6 +41,9 @@ namespace Scenes
         private float _intensityLevel = 0.0f;
         private float _mouseTrackingIntensity = 0.3f;
         private Vector2 _lastMousePosition = new Vector2(0.5f, 0.5f);
+
+        // Add a field to track the last hovered button
+        private Button _lastHoveredButton = null;
 
         public override void _Ready()
         {
@@ -74,7 +76,10 @@ namespace Scenes
                 _patternMaterial.SetShaderParameter("distortion_intensity", 0.3f);
 
                 // Update title text
-                _titleLabel.Text = "Selamat Siang";
+                _titleLabel.Text = "BEGU GANJANG";
+
+                // Create an innovative horror-themed button layout
+                CreateHorrorMenuLayout();
 
                 // Apply horror styling to buttons
                 StyleButtons();
@@ -88,9 +93,6 @@ namespace Scenes
                 {
                     GD.PrintErr($"Error connecting button signals: {e.Message}");
                 }
-
-                // Trigger a small jumpscare after a short delay to test sound
-                GetTree().CreateTimer(2.0f).Timeout += () => TriggerJumpscare();
 
                 _rng.Randomize();
 
@@ -115,6 +117,9 @@ namespace Scenes
 
             // Apply intensity to shaders
             ApplyIntensityToShaders();
+
+            // Check for button hovering
+            CheckButtonHovering();
 
             // Update distortion based on mouse position
             Vector2 mousePos = GetViewport().GetMousePosition();
@@ -154,75 +159,86 @@ namespace Scenes
 
                 // Create background music player
                 _backgroundMusic = new AudioStreamPlayer();
-
-                // Load the audio file with error checking
-                var backgroundStream = ResourceLoader.Load<AudioStream>(
-                    "res://Assets/Sounds/wind_howl.mp3"
-                );
-                if (backgroundStream == null)
+                string soundPath = "res://Assets/Sounds/wind_howl.mp3";
+                GD.Print($"Attempting to load background music from: {soundPath}");
+                var musicStream = GD.Load<AudioStream>(soundPath);
+                if (musicStream == null)
                 {
-                    GD.PrintErr(
-                        "Failed to load background music: res://Assets/Sounds/wind_howl.mp3"
-                    );
+                    GD.PrintErr($"Failed to load background music from {soundPath}");
                 }
                 else
                 {
-                    _backgroundMusic.Stream = backgroundStream;
-                    _backgroundMusic.VolumeDb = 0; // Increased volume
-                    _backgroundMusic.Autoplay = true; // Auto play on scene load
+                    _backgroundMusic.Stream = musicStream;
+                    _backgroundMusic.VolumeDb = -5; // Lower volume for background
+                    _backgroundMusic.Autoplay = false;
                     AddChild(_backgroundMusic);
-                    _backgroundMusic.Play();
-                    GD.Print("Background music started playing");
+                    GD.Print("Background music loaded successfully");
                 }
 
-                // Create jumpscare sound player
-                _jumpscareSound = new AudioStreamPlayer();
-
-                // Load the jumpscare sound with error checking
-                var jumpscareStream = ResourceLoader.Load<AudioStream>(
-                    "res://Assets/Sounds/sudden_noise.mp3"
-                );
-                if (jumpscareStream == null)
+                // Create heartbeat sound player
+                _heartbeatSound = new AudioStreamPlayer();
+                soundPath = "res://Assets/Sounds/heartbeat.mp3";
+                GD.Print($"Attempting to load heartbeat sound from: {soundPath}");
+                var heartbeatStream = GD.Load<AudioStream>(soundPath);
+                if (heartbeatStream == null)
                 {
-                    GD.PrintErr(
-                        "Failed to load jumpscare sound: res://Assets/Sounds/sudden_noise.mp3"
-                    );
+                    GD.PrintErr($"Failed to load heartbeat sound from {soundPath}");
                 }
                 else
-                {
-                    _jumpscareSound.Stream = jumpscareStream;
-                    _jumpscareSound.VolumeDb = 5; // Louder for jumpscare effect
-                    AddChild(_jumpscareSound);
-                    GD.Print("Jumpscare sound loaded successfully");
-                }
-
-                // Add a heartbeat sound for additional atmosphere
-                _heartbeatSound = new AudioStreamPlayer();
-                var heartbeatStream = ResourceLoader.Load<AudioStream>(
-                    "res://Assets/Sounds/heartbeat.mp3"
-                );
-                if (heartbeatStream != null)
                 {
                     _heartbeatSound.Stream = heartbeatStream;
-                    _heartbeatSound.VolumeDb = 3;
-                    _heartbeatSound.Autoplay = true;
+                    _heartbeatSound.VolumeDb = 0; // Slightly louder than background
                     AddChild(_heartbeatSound);
-                    GD.Print("Heartbeat sound added");
+                    GD.Print("Heartbeat sound loaded successfully");
                 }
 
                 // Create siren sound player
                 _sirenSound = new AudioStreamPlayer();
-                var sirenStream = ResourceLoader.Load<AudioStream>("res://Assets/Sounds/siren.mp3");
+                soundPath = "res://Assets/Sounds/siren.mp3";
+                GD.Print($"Attempting to load siren sound from: {soundPath}");
+                var sirenStream = GD.Load<AudioStream>(soundPath);
                 if (sirenStream == null)
                 {
-                    GD.PrintErr("Failed to load siren sound: res://Assets/Sounds/siren.mp3");
+                    GD.PrintErr($"Failed to load siren sound from {soundPath}");
                 }
                 else
                 {
                     _sirenSound.Stream = sirenStream;
-                    _sirenSound.VolumeDb = 0; // Louder for jumpscare effect
+                    _sirenSound.VolumeDb = 0;
                     AddChild(_sirenSound);
                     GD.Print("Siren sound loaded successfully");
+                }
+
+                // Create hover sound player
+                _hoverSound = new AudioStreamPlayer();
+                soundPath = "res://Assets/Sounds/hover.mp3";
+                GD.Print($"Attempting to load hover sound from: {soundPath}");
+                var hoverStream = GD.Load<AudioStream>(soundPath);
+                if (hoverStream == null)
+                {
+                    // If hover.mp3 doesn't exist, try to use another existing sound
+                    soundPath = "res://Assets/Sounds/heartbeat.mp3";
+                    hoverStream = GD.Load<AudioStream>(soundPath);
+                    if (hoverStream == null)
+                    {
+                        GD.PrintErr($"Failed to load fallback sound from {soundPath}");
+                    }
+                    else
+                    {
+                        GD.Print($"Successfully loaded fallback sound from {soundPath}");
+                    }
+                }
+                else
+                {
+                    GD.Print($"Successfully loaded hover sound from {soundPath}");
+                }
+
+                if (hoverStream != null)
+                {
+                    _hoverSound.Stream = hoverStream;
+                    _hoverSound.VolumeDb = 10; // Increased volume to be clearly audible
+                    AddChild(_hoverSound);
+                    GD.Print("Hover sound loaded successfully");
                 }
             }
             catch (System.Exception e)
@@ -247,13 +263,6 @@ namespace Scenes
             _flickerTimer.Autostart = false;
             AddChild(_flickerTimer);
             _flickerTimer.Timeout += OnFlickerTimeout;
-
-            // Create jumpscare timer
-            _jumpscareTimer = new Timer();
-            _jumpscareTimer.WaitTime = _rng.RandfRange(15.0f, 30.0f); // Random initial time
-            _jumpscareTimer.Autostart = true;
-            AddChild(_jumpscareTimer);
-            _jumpscareTimer.Timeout += OnJumpscareTimeout;
 
             // Create effect timer for periodic effects
             _effectTimer = new Timer();
@@ -301,30 +310,376 @@ namespace Scenes
         {
             try
             {
-                GD.Print("Styling buttons");
+                GD.Print("Styling buttons with advanced horror effects");
 
                 // Apply horror styling to all buttons in the container
                 foreach (Node child in _buttonsContainer.GetChildren())
                 {
                     if (child is Button button)
                     {
-                        // Set horror-themed font and colors
-                        button.AddThemeColorOverride("font_color", new Color(0.8f, 0.1f, 0.1f));
+                        // Skip the title label
+                        if (button.Name == "Title")
+                            continue;
+
+                        // Create a horror-themed font effect
+                        // Dark red blood-like color with shadow
+                        button.AddThemeColorOverride("font_color", new Color(0.6f, 0.05f, 0.05f));
                         button.AddThemeColorOverride(
                             "font_hover_color",
-                            new Color(1.0f, 0.0f, 0.0f)
+                            new Color(0.9f, 0.0f, 0.0f)
                         );
 
+                        // Add shadow effect to text
+                        button.AddThemeConstantOverride("outline_size", 1);
+                        button.AddThemeColorOverride(
+                            "font_outline_color",
+                            new Color(0.1f, 0.0f, 0.0f, 0.8f)
+                        );
+
+                        // Increase font size for more dramatic effect
+                        button.AddThemeConstantOverride("font_size", 28);
+
+                        // Store original position to prevent unwanted movement
+                        button.SetMeta("_original_position", button.Position);
+
+                        // We no longer need to connect the MouseEntered/MouseExited signals
+                        // as we're now checking for hovering in the _Process method
+
+                        // Add random subtle animation to each button
+                        // But avoid the shake effect that causes positioning issues
+                        int effectType = _rng.RandiRange(0, 2);
+                        switch (effectType)
+                        {
+                            case 0:
+                                // Flickering text effect
+                                ApplyFlickerEffect(button);
+                                break;
+                            case 1:
+                                // Blood drip effect
+                                ApplyBloodEffect(button);
+                                break;
+                            case 2:
+                                // Distortion effect
+                                ApplyDistortionEffect(button);
+                                break;
+                        }
+
                         // Log button found
-                        GD.Print($"Styled button: {button.Name}");
+                        GD.Print($"Styled horror button: {button.Name}");
                     }
                 }
 
-                GD.Print("Button styling completed");
+                // Style the title label with horror effect
+                StyleTitleLabel();
+
+                GD.Print("Horror button styling completed");
             }
             catch (Exception e)
             {
                 GD.PrintErr($"Error styling buttons: {e.Message}");
+            }
+        }
+
+        // Apply a flickering text effect to a button
+        private void ApplyFlickerEffect(Button button)
+        {
+            // Create a timer for the flicker effect
+            Timer flickerTimer = new Timer();
+            flickerTimer.WaitTime = _rng.RandfRange(1.0f, 3.0f);
+            flickerTimer.Autostart = true;
+
+            flickerTimer.Timeout += () =>
+            {
+                // Only flicker if not being hovered
+                if (!button.IsHovered())
+                {
+                    // Create a sequence of flickers
+                    int flickerCount = _rng.RandiRange(2, 5);
+                    float flickerDelay = 0.1f;
+
+                    for (int i = 0; i < flickerCount; i++)
+                    {
+                        GetTree().CreateTimer(i * flickerDelay).Timeout += () =>
+                        {
+                            // Toggle visibility
+                            button.Modulate = button.Modulate with
+                            {
+                                A = button.Modulate.A < 0.5f ? 1.0f : 0.3f,
+                            };
+                        };
+                    }
+
+                    // Reset visibility after sequence
+                    GetTree().CreateTimer(flickerCount * flickerDelay).Timeout += () =>
+                    {
+                        button.Modulate = button.Modulate with { A = 1.0f };
+                    };
+
+                    // Reset timer with random interval
+                    flickerTimer.WaitTime = _rng.RandfRange(3.0f, 8.0f);
+                    flickerTimer.Start();
+                }
+            };
+
+            button.AddChild(flickerTimer);
+        }
+
+        // Apply a blood drip effect to a button
+        private void ApplyBloodEffect(Button button)
+        {
+            // Create a timer for occasional blood drip
+            Timer bloodTimer = new Timer();
+            bloodTimer.WaitTime = _rng.RandfRange(5.0f, 15.0f);
+            bloodTimer.Autostart = true;
+
+            bloodTimer.Timeout += () =>
+            {
+                // Create a blood drip animation
+                if (!button.IsHovered())
+                {
+                    // Temporarily change color to simulate blood dripping
+                    Color originalColor = button.GetThemeColor("font_color");
+                    Color bloodColor = new Color(0.8f, 0.0f, 0.0f);
+
+                    // Animate the color change
+                    float duration = 1.5f;
+                    Tween tween = GetTree().CreateTween();
+                    tween.TweenProperty(
+                        button,
+                        "theme_override_colors/font_color",
+                        bloodColor,
+                        duration / 3
+                    );
+                    tween.TweenProperty(
+                        button,
+                        "theme_override_colors/font_color",
+                        originalColor,
+                        duration * 2 / 3
+                    );
+
+                    // Reset timer with random interval
+                    bloodTimer.WaitTime = _rng.RandfRange(8.0f, 20.0f);
+                    bloodTimer.Start();
+                }
+            };
+
+            button.AddChild(bloodTimer);
+        }
+
+        // Apply a distortion effect to a button
+        private void ApplyDistortionEffect(Button button)
+        {
+            // Create a timer for occasional distortion
+            Timer distortTimer = new Timer();
+            distortTimer.WaitTime = _rng.RandfRange(4.0f, 10.0f);
+            distortTimer.Autostart = true;
+
+            distortTimer.Timeout += () =>
+            {
+                // Create a distortion animation
+                if (!button.IsHovered())
+                {
+                    // Apply scale distortion
+                    Vector2 originalScale = button.Scale;
+                    Vector2 distortedScale = new Vector2(
+                        originalScale.X + _rng.RandfRange(-0.1f, 0.1f),
+                        originalScale.Y + _rng.RandfRange(-0.05f, 0.05f)
+                    );
+
+                    // Animate the distortion
+                    float duration = 0.3f;
+                    Tween tween = GetTree().CreateTween();
+                    tween.TweenProperty(button, "scale", distortedScale, duration / 2);
+                    tween.TweenProperty(button, "scale", originalScale, duration / 2);
+
+                    // Reset timer with random interval
+                    distortTimer.WaitTime = _rng.RandfRange(6.0f, 15.0f);
+                    distortTimer.Start();
+                }
+            };
+
+            button.AddChild(distortTimer);
+        }
+
+        // Style the title label with horror effects
+        private void StyleTitleLabel()
+        {
+            if (_titleLabel != null)
+            {
+                // Set horror font for title
+                _titleLabel.AddThemeColorOverride("font_color", new Color(0.7f, 0.1f, 0.1f));
+                _titleLabel.AddThemeConstantOverride("font_size", 72);
+                _titleLabel.AddThemeConstantOverride("outline_size", 3);
+                _titleLabel.AddThemeColorOverride(
+                    "font_outline_color",
+                    new Color(0.1f, 0.0f, 0.0f, 0.9f)
+                );
+
+                // Create pulsating effect for title
+                Timer pulseTimer = new Timer();
+                pulseTimer.WaitTime = 0.05f;
+                pulseTimer.Autostart = true;
+
+                float pulsePhase = 0.0f;
+                float pulseSpeed = 1.5f;
+                float pulseAmount = 0.05f;
+
+                pulseTimer.Timeout += () =>
+                {
+                    pulsePhase += 0.05f * pulseSpeed;
+                    float pulseFactor = 1.0f + Mathf.Sin(pulsePhase) * pulseAmount;
+
+                    // Apply subtle scale pulsation
+                    _titleLabel.Scale = new Vector2(pulseFactor, pulseFactor);
+                };
+
+                _titleLabel.AddChild(pulseTimer);
+            }
+        }
+
+        // Check if any buttons are being hovered and play sound if needed
+        private void CheckButtonHovering()
+        {
+            try
+            {
+                Button currentHoveredButton = null;
+
+                // Check all buttons in the container
+                foreach (Node child in _buttonsContainer.GetChildren())
+                {
+                    if (child is Button button && button.IsHovered())
+                    {
+                        currentHoveredButton = button;
+                        break;
+                    }
+                }
+
+                // If we're hovering over a different button than before
+                if (currentHoveredButton != null && currentHoveredButton != _lastHoveredButton)
+                {
+                    GD.Print($"Button {currentHoveredButton.Name} is now hovered");
+
+                    // Play the hover sound
+                    if (_hoverSound != null)
+                    {
+                        // Always stop and restart the sound to ensure it plays
+                        _hoverSound.Stop();
+
+                        // Randomize pitch for variety
+                        _hoverSound.PitchScale = _rng.RandfRange(0.8f, 1.2f);
+
+                        // Ensure volume is high enough to be heard
+                        _hoverSound.VolumeDb = 10;
+
+                        // Play the sound
+                        _hoverSound.Play();
+                        GD.Print($"Playing hover sound for button {currentHoveredButton.Name}");
+                    }
+
+                    // Apply visual hover effect
+                    ApplyButtonHoverEffect(currentHoveredButton);
+
+                    // If we were hovering over a different button before, reset it
+                    if (_lastHoveredButton != null)
+                    {
+                        ResetButtonHoverEffect(_lastHoveredButton);
+                    }
+
+                    // Update the last hovered button
+                    _lastHoveredButton = currentHoveredButton;
+                }
+                // If we're no longer hovering over any button
+                else if (currentHoveredButton == null && _lastHoveredButton != null)
+                {
+                    ResetButtonHoverEffect(_lastHoveredButton);
+                    _lastHoveredButton = null;
+                }
+            }
+            catch (Exception e)
+            {
+                GD.PrintErr($"Error in CheckButtonHovering: {e.Message}");
+            }
+        }
+
+        // Apply visual hover effect to a button
+        private void ApplyButtonHoverEffect(Button button)
+        {
+            try
+            {
+                // Create a horror-themed hover animation
+                Tween tween = GetTree().CreateTween();
+
+                // Scale up slightly
+                tween.TweenProperty(button, "scale", new Vector2(1.2f, 1.2f), 0.3f);
+
+                // Add a slight rotation for unsettling effect
+                if (button.HasMeta("_original_rotation"))
+                {
+                    float originalRotation = (float)button.GetMeta("_original_rotation");
+                    tween.TweenProperty(
+                        button,
+                        "rotation",
+                        originalRotation + _rng.RandfRange(-0.1f, 0.1f),
+                        0.3f
+                    );
+                }
+
+                // Increase distortion around button
+                _distortionIntensity += 0.2f;
+
+                // Add blood drip effect on hover
+                Color bloodColor = new Color(0.9f, 0.0f, 0.0f);
+                button.AddThemeColorOverride("font_color", bloodColor);
+
+                // Add text distortion effect
+                button.AddThemeConstantOverride("outline_size", 2);
+
+                // Add a custom stylebox for hover state with more intense blood effect
+                StyleBoxFlat hoverStyle = CreateHorrorStylebox(0.6f);
+                button.AddThemeStyleboxOverride("hover", hoverStyle);
+
+                // Trigger a small screen shake
+                TriggerDistortionPulse(0.3f);
+            }
+            catch (Exception e)
+            {
+                GD.PrintErr($"Error in ApplyButtonHoverEffect: {e.Message}");
+            }
+        }
+
+        // Reset button to non-hovered state
+        private void ResetButtonHoverEffect(Button button)
+        {
+            try
+            {
+                // Reset button appearance with animation
+                Tween tween = GetTree().CreateTween();
+                tween.TweenProperty(button, "scale", new Vector2(1.0f, 1.0f), 0.2f);
+
+                // Reset rotation
+                if (button.HasMeta("_original_rotation"))
+                {
+                    float originalRotation = (float)button.GetMeta("_original_rotation");
+                    tween.TweenProperty(button, "rotation", originalRotation, 0.3f);
+                }
+
+                // Reset distortion
+                _distortionIntensity -= 0.2f;
+                if (_distortionIntensity < 0.0f)
+                    _distortionIntensity = 0.0f;
+
+                // Reset button color
+                button.AddThemeColorOverride("font_color", new Color(0.6f, 0.05f, 0.05f));
+
+                // Reset outline
+                button.AddThemeConstantOverride("outline_size", 1);
+
+                // Reset hover style
+                button.AddThemeStyleboxOverride("hover", CreateHorrorStylebox(0.4f));
+            }
+            catch (Exception e)
+            {
+                GD.PrintErr($"Error in ResetButtonHoverEffect: {e.Message}");
             }
         }
 
@@ -443,35 +798,6 @@ namespace Scenes
             }
         }
 
-        private void TriggerJumpscare()
-        {
-            GD.Print("Triggering jumpscare");
-
-            // Play jumpscare sound
-            if (_jumpscareSound != null)
-            {
-                _jumpscareSound.Play();
-            }
-
-            // Activate intense mode
-            _isIntenseModeActive = true;
-
-            // Create a timer to turn off intense mode
-            var intenseModeTimer = new Timer();
-            intenseModeTimer.WaitTime = 2.0f;
-            intenseModeTimer.Connect("timeout", new Callable(this, nameof(EndIntenseMode)));
-            intenseModeTimer.Autostart = true;
-            intenseModeTimer.OneShot = true;
-            AddChild(intenseModeTimer);
-
-            // Trigger glitch effect
-            TriggerGlitchEffect(0.5f);
-
-            // Reset jumpscare timer
-            _jumpscareTimer.WaitTime = _rng.RandfRange(45.0f, 90.0f);
-            _jumpscareTimer.Start();
-        }
-
         private void TriggerGlitchEffect(float duration)
         {
             // Set glitch parameters in shaders
@@ -559,19 +885,6 @@ namespace Scenes
             {
                 // Do nothing this time
             }
-        }
-
-        private void OnJumpscareTimeout()
-        {
-            // Random chance for jumpscare
-            if (_rng.Randf() < 0.3f)
-            {
-                TriggerJumpscare();
-            }
-
-            // Randomize next jumpscare time
-            _jumpscareTimer.WaitTime = _rng.RandfRange(20.0f, 60.0f);
-            _jumpscareTimer.Start();
         }
 
         private void OnGlitchTimerTimeout()
@@ -681,16 +994,8 @@ namespace Scenes
 
         private void OnStartButtonPressed()
         {
-            // Trigger a jumpscare before transitioning
-            TriggerJumpscare();
-
-            // Create a timer to transition after the jumpscare
-            var transitionTimer = new Timer();
-            transitionTimer.WaitTime = 1.5f;
-            transitionTimer.Timeout += TransitionToGameScene;
-            transitionTimer.Autostart = true;
-            transitionTimer.OneShot = true;
-            AddChild(transitionTimer);
+            // Transition to the game scene
+            GetTree().ChangeSceneToFile("res://Scenes/GameScene.tscn");
         }
 
         private void TransitionToGameScene()
@@ -746,25 +1051,49 @@ namespace Scenes
         // Safely connect button signals
         private void ConnectButtonSignals()
         {
-            // Dictionary of button paths and their handlers
+            // Dictionary of button names (not paths) and their handlers
             var buttonHandlers = new Dictionary<string, string>
             {
-                { "MarginContainer/VBoxContainer/BtnStart", nameof(OnStartButtonPressed) },
-                { "MarginContainer/VBoxContainer/BtnExit", nameof(OnExitButtonPressed) },
-                { "MarginContainer/VBoxContainer/BtnKarya1", nameof(OnBtnKarya1Pressed) },
-                { "MarginContainer/VBoxContainer/BtnKarya2", nameof(OnBtnKarya2Pressed) },
-                { "MarginContainer/VBoxContainer/BtnKarya3", nameof(OnBtnKarya3Pressed) },
-                { "MarginContainer/VBoxContainer/BtnKarya4", nameof(OnBtnKarya4Pressed) },
-                { "MarginContainer/VBoxContainer/BtnAbout", nameof(OnBtnAboutPressed) },
-                { "MarginContainer/VBoxContainer/BtnGuide", nameof(OnBtnGuidePressed) },
+                { "BtnExit", nameof(OnExitButtonPressed) },
+                { "BtnKarya1", nameof(OnBtnKarya1Pressed) },
+                { "BtnKarya2", nameof(OnBtnKarya2Pressed) },
+                { "BtnKarya3", nameof(OnBtnKarya3Pressed) },
+                { "BtnKarya4", nameof(OnBtnKarya4Pressed) },
+                { "BtnAbout", nameof(OnBtnAboutPressed) },
+                { "BtnGuide", nameof(OnBtnGuidePressed) },
             };
 
-            // Connect each button using TryConnect to avoid duplicate connections
+            // Connect each button using direct node search
             foreach (var buttonEntry in buttonHandlers)
             {
                 try
                 {
-                    var button = GetNodeOrNull<Button>(buttonEntry.Key);
+                    Button button = null;
+
+                    // First try to find the button in the horror menu container
+                    var menuContainer = GetNodeOrNull<Control>(
+                        "MarginContainer/VBoxContainer/HorrorMenuContainer"
+                    );
+                    if (menuContainer != null)
+                    {
+                        // Look through all children of the menu container
+                        foreach (Node child in menuContainer.GetChildren())
+                        {
+                            if (child is Button childButton && childButton.Name == buttonEntry.Key)
+                            {
+                                button = childButton;
+                                break;
+                            }
+                        }
+                    }
+
+                    // If not found, try the traditional path approach
+                    if (button == null)
+                    {
+                        string buttonPath = $"MarginContainer/VBoxContainer/{buttonEntry.Key}";
+                        button = GetNodeOrNull<Button>(buttonPath);
+                    }
+
                     if (button == null)
                     {
                         GD.PrintErr($"Button not found: {buttonEntry.Key}");
@@ -772,7 +1101,6 @@ namespace Scenes
                     }
 
                     // First, try to disconnect any existing connections to avoid duplicates
-                    // This is a safety measure in case the signal is already connected
                     try
                     {
                         if (button.IsConnected("pressed", new Callable(this, buttonEntry.Value)))
@@ -812,6 +1140,325 @@ namespace Scenes
                     GD.PrintErr($"Exception connecting {buttonEntry.Key}: {e.Message}");
                 }
             }
+        }
+
+        // Create an innovative horror-themed menu layout inspired by popular horror games
+        private void CreateHorrorMenuLayout()
+        {
+            try
+            {
+                GD.Print("Creating innovative horror menu layout");
+
+                // First, style the title label with horror effects
+                if (_titleLabel != null)
+                {
+                    // Make title larger and more prominent
+                    _titleLabel.AddThemeColorOverride("font_color", new Color(0.7f, 0.1f, 0.1f));
+                    _titleLabel.AddThemeConstantOverride("font_size", 72);
+                    _titleLabel.AddThemeConstantOverride("outline_size", 3);
+                    _titleLabel.AddThemeColorOverride(
+                        "font_outline_color",
+                        new Color(0.1f, 0.0f, 0.0f, 0.9f)
+                    );
+
+                    // Add a slight rotation to the title for unsettling effect
+                    _titleLabel.Rotation = _rng.RandfRange(-0.05f, 0.05f);
+
+                    // Create pulsating effect for title
+                    Timer pulseTimer = new Timer();
+                    pulseTimer.WaitTime = 0.05f;
+                    pulseTimer.Autostart = true;
+
+                    float pulsePhase = 0.0f;
+                    float pulseSpeed = 1.5f;
+                    float pulseAmount = 0.05f;
+
+                    pulseTimer.Timeout += () =>
+                    {
+                        pulsePhase += 0.05f * pulseSpeed;
+                        float pulseFactor = 1.0f + Mathf.Sin(pulsePhase) * pulseAmount;
+
+                        // Apply subtle scale pulsation
+                        _titleLabel.Scale = new Vector2(pulseFactor, pulseFactor);
+                    };
+
+                    _titleLabel.AddChild(pulseTimer);
+                }
+
+                // Create a new container for our innovative layout
+                Control menuContainer = new Control();
+                menuContainer.Name = "HorrorMenuContainer";
+                menuContainer.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+                menuContainer.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+                menuContainer.CustomMinimumSize = new Vector2(800, 500);
+                _buttonsContainer.AddChild(menuContainer);
+
+                // Get the viewport size for positioning
+                Vector2 viewportSize = GetViewportRect().Size;
+                Vector2 containerCenter = new Vector2(viewportSize.X / 2, viewportSize.Y / 2 + 100);
+
+                // Define positions for each button in a pentagram/asymmetric pattern
+                // This creates a more interesting and horror-themed layout
+                Dictionary<string, Vector2> buttonPositions = new Dictionary<string, Vector2>
+                {
+                    { "BtnKarya1", new Vector2(-200, -50) }, // Top-left
+                    { "BtnKarya2", new Vector2(200, -50) }, // Top-right
+                    { "BtnKarya3", new Vector2(-150, 100) }, // Bottom-left
+                    { "BtnKarya4", new Vector2(150, 100) }, // Bottom-right
+                    { "BtnAbout", new Vector2(-250, 200) }, // Far bottom-left
+                    { "BtnGuide", new Vector2(250, 200) }, // Far bottom-right
+                    { "BtnExit", new Vector2(0, 250) }, // Bottom
+                };
+
+                // IMPORTANT: Instead of removing buttons from the container, we'll just reposition them
+                // This way, the original node paths remain valid for signal connections
+                foreach (string buttonName in buttonPositions.Keys)
+                {
+                    string buttonPath = $"MarginContainer/VBoxContainer/{buttonName}";
+                    var button = GetNodeOrNull<Button>(buttonPath);
+
+                    if (button == null)
+                    {
+                        GD.PrintErr($"Button not found: {buttonPath}");
+                        continue;
+                    }
+
+                    // Reparent the button to our horror menu container
+                    _buttonsContainer.RemoveChild(button);
+                    menuContainer.AddChild(button);
+
+                    // Set button size
+                    button.CustomMinimumSize = new Vector2(200, 60);
+
+                    // Position the button
+                    Vector2 position = buttonPositions[buttonName];
+
+                    // Center the button at its position
+                    button.Position =
+                        position
+                        + new Vector2(
+                            menuContainer.Size.X / 2 - button.Size.X / 2,
+                            menuContainer.Size.Y / 2 - button.Size.Y / 2
+                        );
+
+                    // Add a slight random rotation for unsettling effect
+                    button.Rotation = _rng.RandfRange(-0.1f, 0.1f);
+
+                    // Store original position and rotation for hover effects
+                    button.SetMeta("_original_position", button.Position);
+                    button.SetMeta("_original_rotation", button.Rotation);
+
+                    // Add a subtle floating animation
+                    AddFloatingAnimation(button);
+
+                    GD.Print($"Positioned button {button.Name} at {position}");
+                }
+
+                // Get all the buttons for adding decorations and connecting lines
+                List<Button> buttons = new List<Button>();
+                foreach (Node child in menuContainer.GetChildren())
+                {
+                    if (child is Button button)
+                    {
+                        buttons.Add(button);
+                    }
+                }
+
+                // Add blood stain decorations around buttons
+                AddBloodStainDecorations(menuContainer);
+
+                // Add pentagram-like connecting lines between buttons for horror theme
+                if (buttons.Count >= 5)
+                {
+                    AddConnectingLines(menuContainer, buttons);
+                }
+
+                GD.Print("Horror menu layout created");
+            }
+            catch (Exception e)
+            {
+                GD.PrintErr($"Error creating horror menu layout: {e.Message}");
+            }
+        }
+
+        // Add floating animation to a button
+        private void AddFloatingAnimation(Button button)
+        {
+            Timer floatTimer = new Timer();
+            floatTimer.WaitTime = 0.05f;
+            floatTimer.Autostart = true;
+
+            float floatPhase = _rng.RandfRange(0, Mathf.Pi * 2); // Random starting phase
+            float floatSpeed = _rng.RandfRange(0.5f, 1.5f);
+            float floatAmount = _rng.RandfRange(2.0f, 5.0f);
+
+            Vector2 originalPosition = button.Position;
+
+            floatTimer.Timeout += () =>
+            {
+                if (!button.IsHovered())
+                {
+                    floatPhase += 0.05f * floatSpeed;
+                    float offsetY = Mathf.Sin(floatPhase) * floatAmount;
+
+                    // Apply subtle floating motion
+                    button.Position = originalPosition + new Vector2(0, offsetY);
+                }
+            };
+
+            button.AddChild(floatTimer);
+        }
+
+        // Add blood stain decorations around buttons
+        private void AddBloodStainDecorations(Control container)
+        {
+            // Create 3-5 blood stains at random positions
+            int numStains = _rng.RandiRange(3, 5);
+
+            for (int i = 0; i < numStains; i++)
+            {
+                TextureRect bloodStain = new TextureRect();
+                bloodStain.Name = $"BloodStain{i}";
+
+                // Load a blood stain texture - you'll need to create this asset
+                string soundPath = "res://Assets/Images/blood_stain.png";
+                var texture = GD.Load<Texture2D>(soundPath);
+                if (texture == null)
+                {
+                    // Create a placeholder if texture doesn't exist
+                    texture = new GradientTexture2D();
+                    GradientTexture2D gradTexture = (GradientTexture2D)texture;
+                    Gradient gradient = new Gradient();
+                    gradient.AddPoint(0, new Color(0.5f, 0.0f, 0.0f, 0.7f));
+                    gradient.AddPoint(1, new Color(0.3f, 0.0f, 0.0f, 0.0f));
+                    gradTexture.Gradient = gradient;
+                    gradTexture.Width = 100;
+                    gradTexture.Height = 100;
+                    gradTexture.FillFrom = new Vector2(0.5f, 0.5f);
+                    gradTexture.FillTo = new Vector2(1.0f, 1.0f);
+                }
+
+                bloodStain.Texture = texture;
+                bloodStain.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
+                bloodStain.StretchMode = TextureRect.StretchModeEnum.Scale;
+                bloodStain.CustomMinimumSize = new Vector2(
+                    _rng.RandfRange(50, 150),
+                    _rng.RandfRange(50, 150)
+                );
+
+                // Position randomly
+                bloodStain.Position = new Vector2(
+                    _rng.RandfRange(50, container.Size.X - 50),
+                    _rng.RandfRange(50, container.Size.Y - 50)
+                );
+
+                // Random rotation
+                bloodStain.Rotation = _rng.RandfRange(0, Mathf.Pi * 2);
+
+                // Random transparency
+                bloodStain.Modulate = bloodStain.Modulate with
+                {
+                    A = _rng.RandfRange(0.3f, 0.7f),
+                };
+
+                // Set z-index to be below buttons
+                bloodStain.ZIndex = -1;
+
+                container.AddChild(bloodStain);
+            }
+        }
+
+        // Add connecting lines between buttons for pentagram-like effect
+        private void AddConnectingLines(Control container, List<Button> buttons)
+        {
+            if (buttons.Count < 5)
+                return;
+
+            // Create a custom control for drawing lines
+            PentagramLines lineDrawer = new PentagramLines();
+            lineDrawer.Name = "ConnectingLines";
+            lineDrawer.ZIndex = -1; // Below buttons
+
+            // Add button centers as points
+            List<Vector2> points = new List<Vector2>();
+            foreach (Button button in buttons)
+            {
+                // Skip exit button
+                if (button.Name == "BtnExit")
+                    continue;
+
+                // Add center point of button
+                points.Add(button.Position + button.Size / 2);
+            }
+
+            // Set points to draw
+            lineDrawer.Points = points;
+            lineDrawer.LineColor = new Color(0.5f, 0.0f, 0.0f, 0.3f); // Subtle blood color
+            lineDrawer.LineWidth = 2.0f;
+
+            container.AddChild(lineDrawer);
+        }
+
+        // Custom control for drawing connecting lines
+        private partial class PentagramLines : Control
+        {
+            public List<Vector2> Points { get; set; } = new List<Vector2>();
+            public Color LineColor { get; set; } = new Color(1, 0, 0, 0.5f);
+            public float LineWidth { get; set; } = 2.0f;
+
+            public override void _Draw()
+            {
+                if (Points.Count < 2)
+                    return;
+
+                // Draw lines connecting points in sequence
+                for (int i = 0; i < Points.Count; i++)
+                {
+                    // Connect to next point (or back to first for last point)
+                    int nextIndex = (i + 1) % Points.Count;
+                    DrawLine(Points[i], Points[nextIndex], LineColor, LineWidth);
+                }
+
+                // Draw additional connections for pentagram effect if we have enough points
+                if (Points.Count >= 5)
+                {
+                    // Connect non-adjacent points for pentagram effect
+                    for (int i = 0; i < Points.Count; i++)
+                    {
+                        int skipIndex = (i + 2) % Points.Count;
+                        DrawLine(Points[i], Points[skipIndex], LineColor, LineWidth);
+                    }
+                }
+            }
+        }
+
+        // Create a horror-themed stylebox for buttons
+        private StyleBoxFlat CreateHorrorStylebox(float intensity)
+        {
+            StyleBoxFlat style = new StyleBoxFlat();
+
+            // Dark, blood-like background with more horror-themed colors
+            style.BgColor = new Color(0.15f + (intensity * 0.1f), 0.01f, 0.01f, 0.8f);
+
+            // Add border with blood-like appearance
+            style.BorderWidthBottom = 4;
+            style.BorderWidthLeft = 2;
+            style.BorderWidthRight = 2;
+            style.BorderWidthTop = 2;
+            style.BorderColor = new Color(0.5f + (intensity * 0.3f), 0.05f, 0.05f, 0.9f);
+
+            // Add shadow for depth
+            style.ShadowColor = new Color(0.0f, 0.0f, 0.0f, 0.8f);
+            style.ShadowSize = 8;
+            style.ShadowOffset = new Vector2(3, 3);
+
+            // Add some padding for better text display
+            style.ContentMarginLeft = 25;
+            style.ContentMarginRight = 25;
+            style.ContentMarginTop = 12;
+            style.ContentMarginBottom = 12;
+
+            return style;
         }
     }
 }
