@@ -124,6 +124,14 @@ namespace Scenes
                 newBackButton.AddThemeColorOverride("bg_color", new Color(0.5f, 0.1f, 0.1f));
                 newBackButton.AddThemeColorOverride("bg_hover_color", new Color(0.7f, 0.2f, 0.2f));
 
+                // Apply horror button font
+                FontFile buttonFont = GD.Load<FontFile>("res://Assets/Fonts/horror_button.ttf");
+                if (buttonFont != null)
+                {
+                    newBackButton.AddThemeFontOverride("font", buttonFont);
+                    newBackButton.AddThemeFontSizeOverride("font_size", 20);
+                }
+
                 // Connect the pressed signal directly to our navigation method
                 newBackButton.Connect("pressed", Callable.From(() => NavigateToWelcomeScene()));
 
@@ -183,17 +191,36 @@ namespace Scenes
             vbox.AnchorBottom = 0;
             vbox.AnchorLeft = 0;
             vbox.AnchorRight = 0;
-            vbox.Position = new Vector2(GetViewportRect().Size.X - 300, 10);
+            vbox.Position = new Vector2(GetViewportRect().Size.X - 400, 10);
+            vbox.AddThemeConstantOverride("separation", 10); // Add space between elements
 
             // Add the container first, then set its size
             CallDeferred(Node.MethodName.AddChild, vbox);
             CallDeferred("SetVBoxSize", vbox);
+
+            // Load horror fonts
+            FontFile titleFont = GD.Load<FontFile>("res://Assets/Fonts/horror_title.ttf");
+            FontFile subtitleFont = GD.Load<FontFile>("res://Assets/Fonts/horror_subtitle.ttf");
+            FontFile textFont = GD.Load<FontFile>("res://Assets/Fonts/horror_text.ttf");
 
             // Create title label
             Label titleLabel = new Label();
             titleLabel.Text = "Horror Animation Controls";
             titleLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.1f, 0.1f));
             titleLabel.HorizontalAlignment = HorizontalAlignment.Right;
+            if (titleFont != null)
+            {
+                titleLabel.AddThemeFontOverride("font", titleFont);
+                titleLabel.AddThemeFontSizeOverride("font_size", 28); // Already at the requested size
+                titleLabel.AddThemeConstantOverride("margin_bottom", 10);
+                // Add shadow for better visibility
+                titleLabel.AddThemeConstantOverride("shadow_offset_x", 1);
+                titleLabel.AddThemeConstantOverride("shadow_offset_y", 1);
+                titleLabel.AddThemeColorOverride(
+                    "font_shadow_color",
+                    new Color(0.0f, 0.0f, 0.0f, 0.7f)
+                );
+            }
             vbox.AddChild(titleLabel);
 
             // Create animation controls label
@@ -201,6 +228,18 @@ namespace Scenes
             controlsLabel.Text = "Press SPACE to start/restart animation";
             controlsLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.1f, 0.1f));
             controlsLabel.HorizontalAlignment = HorizontalAlignment.Right;
+            if (subtitleFont != null)
+            {
+                controlsLabel.AddThemeFontOverride("font", subtitleFont);
+                controlsLabel.AddThemeFontSizeOverride("font_size", 12);
+                controlsLabel.AddThemeConstantOverride("margin_bottom", 5);
+                controlsLabel.AddThemeConstantOverride("shadow_offset_x", 1);
+                controlsLabel.AddThemeConstantOverride("shadow_offset_y", 1);
+                controlsLabel.AddThemeColorOverride(
+                    "font_shadow_color",
+                    new Color(0.0f, 0.0f, 0.0f, 0.7f)
+                );
+            }
             vbox.AddChild(controlsLabel);
 
             // Create keyboard controls label
@@ -208,6 +247,19 @@ namespace Scenes
             keyboardControlsLabel.Text = "Keyboard Controls";
             keyboardControlsLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
             keyboardControlsLabel.HorizontalAlignment = HorizontalAlignment.Right;
+            if (subtitleFont != null)
+            {
+                keyboardControlsLabel.AddThemeFontOverride("font", subtitleFont);
+                keyboardControlsLabel.AddThemeFontSizeOverride("font_size", 12);
+                keyboardControlsLabel.AddThemeConstantOverride("margin_bottom", 5);
+                keyboardControlsLabel.AddThemeConstantOverride("margin_top", 5);
+                keyboardControlsLabel.AddThemeConstantOverride("shadow_offset_x", 1);
+                keyboardControlsLabel.AddThemeConstantOverride("shadow_offset_y", 1);
+                keyboardControlsLabel.AddThemeColorOverride(
+                    "font_shadow_color",
+                    new Color(0.0f, 0.0f, 0.0f, 0.7f)
+                );
+            }
             vbox.AddChild(keyboardControlsLabel);
 
             // Create animation speed label
@@ -215,6 +267,12 @@ namespace Scenes
             _animationSpeedLabel.Text = "Animation Speed (Q/W): 1.0";
             _animationSpeedLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
             _animationSpeedLabel.HorizontalAlignment = HorizontalAlignment.Right;
+            if (textFont != null)
+            {
+                _animationSpeedLabel.AddThemeFontOverride("font", textFont);
+                _animationSpeedLabel.AddThemeFontSizeOverride("font_size", 12);
+                _animationSpeedLabel.AddThemeConstantOverride("margin_bottom", 5);
+            }
             vbox.AddChild(_animationSpeedLabel);
 
             // Create ghost scale label
@@ -222,6 +280,12 @@ namespace Scenes
             _ghostScaleLabel.Text = "Ghost Scale (D/F): 1.0";
             _ghostScaleLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
             _ghostScaleLabel.HorizontalAlignment = HorizontalAlignment.Right;
+            if (textFont != null)
+            {
+                _ghostScaleLabel.AddThemeFontOverride("font", textFont);
+                _ghostScaleLabel.AddThemeFontSizeOverride("font_size", 12);
+                _ghostScaleLabel.AddThemeConstantOverride("margin_bottom", 5);
+            }
             vbox.AddChild(_ghostScaleLabel);
 
             // Create darkness effect label
@@ -229,6 +293,12 @@ namespace Scenes
             _horrorEffectLabel.Text = $"Darkness Effect (Z/X): {_horrorEffectIntensity:F1}";
             _horrorEffectLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
             _horrorEffectLabel.HorizontalAlignment = HorizontalAlignment.Right;
+            if (textFont != null)
+            {
+                _horrorEffectLabel.AddThemeFontOverride("font", textFont);
+                _horrorEffectLabel.AddThemeFontSizeOverride("font_size", 12);
+                _horrorEffectLabel.AddThemeConstantOverride("margin_bottom", 5);
+            }
             vbox.AddChild(_horrorEffectLabel);
         }
 
@@ -239,7 +309,7 @@ namespace Scenes
         {
             if (vbox != null && vbox.IsInsideTree())
             {
-                vbox.SetDeferred("size", new Vector2(300, GetViewportRect().Size.Y - 20));
+                vbox.SetDeferred("size", new Vector2(380, GetViewportRect().Size.Y - 20));
             }
         }
 

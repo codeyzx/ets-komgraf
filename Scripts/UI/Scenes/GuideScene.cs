@@ -138,6 +138,9 @@ namespace Scenes
 
             // Display the first page
             UpdatePageContent();
+            
+            // Apply horror fonts to all text elements
+            ApplyHorrorFonts();
         }
 
         private void InitializePageContents()
@@ -193,6 +196,90 @@ namespace Scenes
             };
         }
 
+        private void ApplyHorrorFonts()
+        {
+            // Load horror fonts
+            FontFile titleFont = GD.Load<FontFile>("res://Assets/Fonts/horror_title.ttf");
+            FontFile subtitleFont = GD.Load<FontFile>("res://Assets/Fonts/horror_subtitle.ttf");
+            FontFile textFont = GD.Load<FontFile>("res://Assets/Fonts/horror_text.ttf");
+            FontFile buttonFont = GD.Load<FontFile>("res://Assets/Fonts/horror_button.ttf");
+            
+            // Apply title font
+            if (titleLabel != null && titleFont != null)
+            {
+                titleLabel.AddThemeFontOverride("font", titleFont);
+                titleLabel.AddThemeFontSizeOverride("font_size", 48);
+                titleLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.1f, 0.1f)); // Blood red
+                
+                // Add shadow effect
+                titleLabel.AddThemeConstantOverride("shadow_offset_x", 2);
+                titleLabel.AddThemeConstantOverride("shadow_offset_y", 2);
+                titleLabel.AddThemeColorOverride("font_shadow_color", new Color(0.0f, 0.0f, 0.0f, 0.7f));
+            }
+            
+            // Apply text font to guide content
+            if (guideContentLabel != null && textFont != null)
+            {
+                guideContentLabel.AddThemeFontOverride("normal_font", textFont);
+                guideContentLabel.AddThemeFontSizeOverride("normal_font_size", 18);
+                
+                // Use subtitle font for bold text
+                if (subtitleFont != null)
+                {
+                    guideContentLabel.AddThemeFontOverride("bold_font", subtitleFont);
+                    guideContentLabel.AddThemeFontSizeOverride("bold_font_size", 18);
+                }
+            }
+            
+            // Apply button font to all buttons
+            if (buttonFont != null)
+            {
+                // Apply to back button
+                if (backButton != null)
+                {
+                    backButton.AddThemeFontOverride("font", buttonFont);
+                    backButton.AddThemeFontSizeOverride("font_size", 24);
+                    backButton.AddThemeColorOverride("font_color", new Color(0.6f, 0.1f, 0.1f)); // Dark blood red
+                    backButton.AddThemeColorOverride("font_hover_color", new Color(1.0f, 0.2f, 0.2f)); // Bright blood red
+                    
+                    // Add shadow effect
+                    backButton.AddThemeConstantOverride("shadow_offset_x", 2);
+                    backButton.AddThemeConstantOverride("shadow_offset_y", 2);
+                    backButton.AddThemeColorOverride("font_shadow_color", new Color(0.0f, 0.0f, 0.0f, 0.7f));
+                }
+                
+                // Apply to prev button
+                var prevButton = GetNode<Button>("MarginContainer/VBoxContainer/HBoxContainer/BtnPrev");
+                if (prevButton != null)
+                {
+                    prevButton.AddThemeFontOverride("font", buttonFont);
+                    prevButton.AddThemeFontSizeOverride("font_size", 24);
+                    prevButton.AddThemeColorOverride("font_color", new Color(0.6f, 0.1f, 0.1f));
+                    prevButton.AddThemeColorOverride("font_hover_color", new Color(1.0f, 0.2f, 0.2f));
+                    
+                    // Add shadow effect
+                    prevButton.AddThemeConstantOverride("shadow_offset_x", 2);
+                    prevButton.AddThemeConstantOverride("shadow_offset_y", 2);
+                    prevButton.AddThemeColorOverride("font_shadow_color", new Color(0.0f, 0.0f, 0.0f, 0.7f));
+                }
+                
+                // Apply to next button
+                var nextButton = GetNode<Button>("MarginContainer/VBoxContainer/HBoxContainer/BtnNext");
+                if (nextButton != null)
+                {
+                    nextButton.AddThemeFontOverride("font", buttonFont);
+                    nextButton.AddThemeFontSizeOverride("font_size", 24);
+                    nextButton.AddThemeColorOverride("font_color", new Color(0.6f, 0.1f, 0.1f));
+                    nextButton.AddThemeColorOverride("font_hover_color", new Color(1.0f, 0.2f, 0.2f));
+                    
+                    // Add shadow effect
+                    nextButton.AddThemeConstantOverride("shadow_offset_x", 2);
+                    nextButton.AddThemeConstantOverride("shadow_offset_y", 2);
+                    nextButton.AddThemeColorOverride("font_shadow_color", new Color(0.0f, 0.0f, 0.0f, 0.7f));
+                }
+            }
+        }
+        
         private void UpdatePageContent()
         {
             guideContentLabel.Text = pageContents[currentPage];

@@ -135,6 +135,89 @@ namespace Scenes
 
             // Make sure profile image size is correct
             AdjustProfileImageSize();
+
+            // Apply horror fonts to all text elements
+            ApplyHorrorFonts();
+        }
+
+        private void ApplyHorrorFonts()
+        {
+            // Load horror fonts
+            FontFile titleFont = GD.Load<FontFile>("res://Assets/Fonts/horror_title.ttf");
+            FontFile subtitleFont = GD.Load<FontFile>("res://Assets/Fonts/horror_subtitle.ttf");
+            FontFile textFont = GD.Load<FontFile>("res://Assets/Fonts/horror_text.ttf");
+            FontFile buttonFont = GD.Load<FontFile>("res://Assets/Fonts/horror_button.ttf");
+
+            // Apply title font
+            if (titleLabel != null && titleFont != null)
+            {
+                titleLabel.AddThemeFontOverride("font", titleFont);
+                titleLabel.AddThemeFontSizeOverride("font_size", 48);
+                titleLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.1f, 0.1f)); // Blood red
+
+                // Add shadow effect
+                titleLabel.AddThemeConstantOverride("shadow_offset_x", 2);
+                titleLabel.AddThemeConstantOverride("shadow_offset_y", 2);
+                titleLabel.AddThemeColorOverride(
+                    "font_shadow_color",
+                    new Color(0.0f, 0.0f, 0.0f, 0.7f)
+                );
+            }
+
+            // Apply subtitle font to identity label
+            if (identityLabel != null && textFont != null)
+            {
+                identityLabel.AddThemeFontOverride("font", textFont);
+                identityLabel.AddThemeFontSizeOverride("font_size", 32);
+                identityLabel.AddThemeColorOverride("font_color", new Color(0.7f, 0.0f, 0.0f)); // Dark red
+
+                // Add shadow effect
+                identityLabel.AddThemeConstantOverride("shadow_offset_x", 2);
+                identityLabel.AddThemeConstantOverride("shadow_offset_y", 2);
+                identityLabel.AddThemeColorOverride(
+                    "font_shadow_color",
+                    new Color(0.0f, 0.0f, 0.0f, 0.7f)
+                );
+            }
+
+            // Apply button font to back button
+            if (backButton != null && buttonFont != null)
+            {
+                backButton.AddThemeFontOverride("font", buttonFont);
+                backButton.AddThemeFontSizeOverride("font_size", 24);
+                backButton.AddThemeColorOverride("font_color", new Color(0.6f, 0.1f, 0.1f)); // Dark blood red
+                backButton.AddThemeColorOverride("font_hover_color", new Color(1.0f, 0.2f, 0.2f)); // Bright blood red
+
+                // Add shadow effect
+                backButton.AddThemeConstantOverride("shadow_offset_x", 2);
+                backButton.AddThemeConstantOverride("shadow_offset_y", 2);
+                backButton.AddThemeColorOverride(
+                    "font_shadow_color",
+                    new Color(0.0f, 0.0f, 0.0f, 0.7f)
+                );
+            }
+
+            // Apply text font to any other labels in the text container
+            if (textContainer != null && textFont != null)
+            {
+                foreach (Node child in textContainer.GetChildren())
+                {
+                    if (child is Label label && label != identityLabel)
+                    {
+                        label.AddThemeFontOverride("font", textFont);
+                        label.AddThemeFontSizeOverride("font_size", 18);
+                        label.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f)); // Pale white
+
+                        // Add shadow effect
+                        label.AddThemeConstantOverride("shadow_offset_x", 2);
+                        label.AddThemeConstantOverride("shadow_offset_y", 2);
+                        label.AddThemeColorOverride(
+                            "font_shadow_color",
+                            new Color(0.0f, 0.0f, 0.0f, 0.7f)
+                        );
+                    }
+                }
+            }
         }
 
         private void AdjustProfileImageSize()

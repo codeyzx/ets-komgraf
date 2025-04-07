@@ -82,7 +82,7 @@ namespace Scenes
                 _patternMaterial.SetShaderParameter("distortion_intensity", 0.3f);
 
                 // Update title text
-                _titleLabel.Text = "BEGU GANJANG";
+                _titleLabel.Text = "Batak Mythology";
 
                 // Create an innovative horror-themed button layout
                 CreateHorrorMenuLayout();
@@ -104,6 +104,9 @@ namespace Scenes
 
                 // Start background effects
                 StartBackgroundEffects();
+
+                // Apply horror fonts to all text elements
+                FontManager.ApplyHorrorFontsToScene(this);
 
                 GD.Print("WelcomeScene initialized successfully");
             }

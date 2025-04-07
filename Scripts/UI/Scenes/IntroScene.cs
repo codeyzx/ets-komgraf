@@ -340,9 +340,23 @@ namespace Scenes
             };
             AddChild(_textLabel);
 
-            // Set custom font
-            // _textLabel.AddThemeFontOverride("font", ResourceLoader.Load<Font>("res://path_to_horror_font.ttf"));
-            _textLabel.AddThemeFontSizeOverride("font_size", 24);
+            // Set custom horror font
+            FontFile horrorFont = GD.Load<FontFile>("res://Assets/Fonts/horror_text.ttf");
+            if (horrorFont != null)
+            {
+                _textLabel.AddThemeFontOverride("font", horrorFont);
+                _textLabel.AddThemeFontSizeOverride("font_size", 24);
+                
+                // Add shadow effect for better readability against dark background
+                _textLabel.AddThemeConstantOverride("shadow_offset_x", 2);
+                _textLabel.AddThemeConstantOverride("shadow_offset_y", 2);
+                _textLabel.AddThemeColorOverride("font_shadow_color", new Color(0.0f, 0.0f, 0.0f, 0.7f));
+            }
+            else
+            {
+                GD.PrintErr("Failed to load horror_text.ttf font");
+                _textLabel.AddThemeFontSizeOverride("font_size", 24);
+            }
 
             // Set position and size with proper margins
             _textLabel.Position = new Vector2(50, 50);
