@@ -1,6 +1,27 @@
-[gd_scene load_steps=2 format=3 uid="uid://b1sl3eabh40cq"]
+[gd_scene load_steps=4 format=3 uid="uid://b1sl3eabh40cq"]
 
 [ext_resource type="Script" uid="uid://dkxuha8i6omef" path="res://Scripts/UI/Scenes/GuideScene.cs" id="1_ehim5"]
+[ext_resource type="Shader" uid="uid://fyrei2mu0djh" path="res://Scenes/Shaders/horror_guide.gdshader" id="2_yk3f4"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vbkf2"]
+shader = ExtResource("2_yk3f4")
+shader_parameter/background_color = Color(0.03, 0.01, 0.02, 1)
+shader_parameter/blood_color = Color(0.6, 0, 0, 1)
+shader_parameter/ghost_color = Color(0.7, 0.7, 0.8, 0.3)
+shader_parameter/noise_scale = 20.0
+shader_parameter/noise_speed = 0.2
+shader_parameter/distortion_strength = 0.05
+shader_parameter/blood_drip_speed = 0.5
+shader_parameter/blood_drip_density = 8.0
+shader_parameter/flicker_speed = 5.0
+shader_parameter/flicker_intensity = 0.15
+shader_parameter/ghost_face_intensity = 0.2
+shader_parameter/fog_density = 0.4
+shader_parameter/lightning_frequency = 0.05
+shader_parameter/lightning_intensity = 0.3
+shader_parameter/static_noise_intensity = 0.15
+shader_parameter/handprint_intensity = 0.3
+shader_parameter/eye_intensity = 0.4
 
 [node name="Guide" type="Control"]
 layout_mode = 3
@@ -12,34 +33,87 @@ grow_vertical = 2
 pivot_offset = Vector2(-289, 16)
 script = ExtResource("1_ehim5")
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
-layout_mode = 0
+[node name="BackgroundShader" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_vbkf2")
+layout_mode = 1
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0784314, 0.0784314, 0.0784314, 1)
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 40
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
 layout_mode = 2
-alignment = 1
+theme_override_constants/separation = 20
 
 [node name="Title" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "Cara Kerja Karya 2D"
+theme_override_colors/font_color = Color(0.8, 0, 0, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 32
+text = "Panduan - Halaman 1/6"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="CaraKerja" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "1. Jalankan Aplikasi 
-2. Jalankan Aplikasi
-3. Jalankan Aplikasi
-4. Jalankan Aplikasi
-5. Jalankan Aplikasi"
-horizontal_alignment = 1
+size_flags_vertical = 3
 
-[node name="BtnBack" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="GuideContent" type="RichTextLabel" parent="MarginContainer/VBoxContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_colors/default_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_y = 1
+theme_override_constants/shadow_offset_x = 1
+theme_override_font_sizes/normal_font_size = 18
+bbcode_enabled = true
+text = "[center][color=#AA0000][font_size=24]PANDUAN MENGARUNGI MIMPI BURUK[/font_size][/color][/center]
+
+[color=#CCCCCC]Selamat datang di dunia mimpi buruk ini. Aplikasi ini memiliki 4 karya yang akan membawa Anda ke dalam kegelapan yang semakin dalam. Setiap karya memiliki tingkat keseraman yang berbeda.[/color]
+
+[color=#AA0000]PERINGATAN:[/color] [color=#CCCCCC]Jangan pernah menatap terlalu lama. Mereka bisa melihat Anda melalui layar.[/color]"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 4
-size_flags_vertical = 4
-text = "Back"
+theme_override_constants/separation = 30
 
-[connection signal="pressed" from="MarginContainer/VBoxContainer/BtnBack" to="." method="OnBtnBackPressed"]
+[node name="BtnPrev" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_hover_color = Color(1, 0, 0, 1)
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 18
+text = "< Sebelumnya"
+
+[node name="BtnBack" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_hover_color = Color(1, 0, 0, 1)
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 18
+text = "Kembali"
+
+[node name="BtnNext" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_hover_color = Color(1, 0, 0, 1)
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 18
+text = "Selanjutnya >"
+
+[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/BtnBack" to="." method="OnBtnBackPressed"]
