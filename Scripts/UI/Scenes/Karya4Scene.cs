@@ -411,6 +411,23 @@ namespace Scenes
                         }
                     }
                 }
+
+                // Make sure sound settings are in sync with current animation settings
+                // This ensures that when the scene first loads, all sound parameters are properly set
+                // Get the current animation speed from the renderer
+                float currentSpeed = 1.0f;
+                var animSpeedField = _buildingRenderer
+                    .GetType()
+                    .GetField("_animationSpeed", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (animSpeedField != null)
+                {
+                    currentSpeed = (float)(animSpeedField.GetValue(_buildingRenderer) ?? 1.0f);
+                }
+
+                // Apply all sound-related settings
+                _buildingRenderer.SetAnimationSpeed(currentSpeed);
+                _buildingRenderer.SetGhostScale(_ghostScale);
+                _buildingRenderer.SetHorrorIntensity(_horrorEffectIntensity);
             }
         }
 
@@ -492,6 +509,7 @@ namespace Scenes
                             ) - 0.1f,
                             0.1f
                         );
+                        // This will also adjust sound pitch based on speed
                         _buildingRenderer.SetAnimationSpeed(animSpeed);
                         _animationSpeedLabel.Text = $"Animation Speed (Q/W): {animSpeed:F1}";
                         break;
@@ -511,6 +529,7 @@ namespace Scenes
                             ) + 0.1f,
                             5.0f
                         );
+                        // This will also adjust sound pitch based on speed
                         _buildingRenderer.SetAnimationSpeed(animSpeed);
                         _animationSpeedLabel.Text = $"Animation Speed (Q/W): {animSpeed:F1}";
                         break;
@@ -521,6 +540,8 @@ namespace Scenes
                         _horrorEffectLabel.Text =
                             $"Darkness Effect (Z/X): {_horrorEffectIntensity:F1}";
                         UpdateHorrorEffects();
+                        // Update sound processing based on horror intensity
+                        _buildingRenderer.SetHorrorIntensity(_horrorEffectIntensity);
                         break;
 
                     case Key.X:
@@ -529,18 +550,24 @@ namespace Scenes
                         _horrorEffectLabel.Text =
                             $"Darkness Effect (Z/X): {_horrorEffectIntensity:F1}";
                         UpdateHorrorEffects();
+                        // Update sound processing based on horror intensity
+                        _buildingRenderer.SetHorrorIntensity(_horrorEffectIntensity);
                         break;
 
                     case Key.D:
                         // Decrease ghost scale
                         _ghostScale = Math.Max(_ghostScale - 0.1f, 0.5f);
                         _ghostScaleLabel.Text = $"Ghost Scale (D/F): {_ghostScale:F1}";
+                        // Update sound volume based on ghost scale
+                        _buildingRenderer.SetGhostScale(_ghostScale);
                         break;
 
                     case Key.F:
                         // Increase ghost scale
                         _ghostScale = Math.Min(_ghostScale + 0.1f, 2.0f);
                         _ghostScaleLabel.Text = $"Ghost Scale (D/F): {_ghostScale:F1}";
+                        // Update sound volume based on ghost scale
+                        _buildingRenderer.SetGhostScale(_ghostScale);
                         break;
                 }
             }

@@ -38,6 +38,29 @@ namespace Drawing.Renderers
         private int _animationStage = 0;
         private int _rotationType = 0; // 0: Normal, 1: Reverse, 2: Oscillating
 
+        // Sound effect properties
+        private AudioStreamPlayer _ambientSoundPlayer;
+        private AudioStreamPlayer _effectSoundPlayer;
+        private AudioStreamPlayer _jumpscareSoundPlayer;
+        private AudioStreamPlayer _ghostSoundPlayer;
+        private bool _ambientSoundStarted = false;
+        private bool _ladderSoundPlayed = false;
+        private bool _rollingHeadSoundPlayed = false;
+        private bool _jumpscareTriggered = false;
+        private bool _ghostAppearSoundPlayed = false;
+        private float _ghostSoundTimer = 0f;
+        private float _ghostSoundInterval = 3.0f; // Time between ghost sounds
+        
+        // Sound looping flags
+        private bool _ambientSoundLooping = false;
+        private bool _effectSoundLooping = false;
+        private bool _ghostSoundLooping = false;
+        
+        // Sound effect adjustment properties
+        private float _soundPitchScale = 1.0f; // Affected by animation speed
+        private float _soundVolumeScale = 1.0f; // Affected by ghost scale
+        private float _horrorIntensity = 1.0f; // Affected by horror effect intensity
+
         // Horror effects
         private float _flickerEffect = 0f;
         private readonly Random _random = new();
@@ -72,6 +95,282 @@ namespace Drawing.Renderers
             _canvas = canvas ?? throw new ArgumentNullException(nameof(canvas));
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _primitif = new();
+
+            // Initialize sound players
+            InitializeSoundPlayers();
+        }
+
+        /// <summary>
+        /// Initializes the audio players for sound effects
+        /// </summary>
+        private void InitializeSoundPlayers()
+        {
+            // Create audio players
+            _ambientSoundPlayer = new AudioStreamPlayer();
+            _effectSoundPlayer = new AudioStreamPlayer();
+            _jumpscareSoundPlayer = new AudioStreamPlayer();
+            _ghostSoundPlayer = new AudioStreamPlayer();
+            
+            // Set initial sound settings
+            _ambientSoundPlayer.VolumeDb = -10; // Ambient is quieter by default
+            _effectSoundPlayer.VolumeDb = 0;
+            _jumpscareSoundPlayer.VolumeDb = 5; // Jumpscare is louder
+            _ghostSoundPlayer.VolumeDb = 0;
+            
+            // We'll add them to the scene tree later when it's safe to do so
+        }
+
+        /// <summary>
+        /// Loads sound files from the Sounds directory.
+        /// </summary>
+        private void LoadSoundFiles()
+        {
+            // Check if sound files exist and load them
+            // Note: These files need to be added to the project
+
+            /*
+            SOUND EFFECTS NEEDED:
+            
+            1. ambient_horror.mp3 - Continuous eerie background ambience with subtle whispers and distant creaks
+               Recommended: Low rumbling bass with occasional distant screams and whispers
+            
+            2. ladder_fall.mp3 - Sound of metal ladder falling and hitting the ground
+               Recommended: Heavy metallic crash with reverb and echoing impact
+            
+            3. rolling_head.mp3 - Wet, squishy sound of head rolling down stairs
+               Recommended: Wet, meaty rolling sound with bone cracking undertones
+            
+           asd 4. jumpscare.mp3 - Loud, sudden screech/scream for the jumpscare moment
+               Recommended: High-pitched violin screech combined with distorted scream
+            
+           asd 5. ghost_appear.mp3 - Ethereal whooshing sound as ghosts appear
+               Recommended: Ghostly whoosh with reverb and subtle wailing
+            
+            6. ghost_moan1.mp3, ghost_moan2.mp3, ghost_moan3.mp3 - Various ghost moaning/wailing sounds
+               Recommended: Different pitched ghostly moans, some high and some low
+            
+            7. ghost_whisper.mp3 - Creepy whispers that play randomly
+               Recommended: Unintelligible whispers with echo effect
+            */
+
+            try
+            {
+                // Try to load ambient sound
+                string ambientPath = "res://Assets/Sounds/Karya/ambient_horror.mp3";
+                if (ResourceLoader.Exists(ambientPath))
+                {
+                    _ambientSoundPlayer.Stream = ResourceLoader.Load<AudioStream>(ambientPath);
+                }
+
+                // Try to load ladder sound
+                string ladderPath = "res://Assets/Sounds/Karya/ladder_fall.mp3";
+                if (ResourceLoader.Exists(ladderPath))
+                {
+                    // We'll set this when needed
+                }
+
+                // Other sounds will be loaded when needed to avoid memory issues
+            }
+            catch (Exception ex)
+            {
+                GD.PrintErr($"Error loading sound files: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Adds the audio players to the scene tree if they haven't been added yet.
+        /// This should be called when it's safe to modify the scene tree.
+        /// </summary>
+        private void EnsureAudioPlayersAddedToScene()
+        {
+            Node parent = _canvas as Node;
+            if (parent == null) return;
+            
+            // Only add players that aren't already in the scene
+            if (_ambientSoundPlayer != null && _ambientSoundPlayer.GetParent() == null)
+            {
+                parent.AddChild(_ambientSoundPlayer);
+            }
+            
+            if (_effectSoundPlayer != null && _effectSoundPlayer.GetParent() == null)
+            {
+                parent.AddChild(_effectSoundPlayer);
+            }
+            
+            if (_jumpscareSoundPlayer != null && _jumpscareSoundPlayer.GetParent() == null)
+            {
+                parent.AddChild(_jumpscareSoundPlayer);
+            }
+            
+            if (_ghostSoundPlayer != null && _ghostSoundPlayer.GetParent() == null)
+            {
+                parent.AddChild(_ghostSoundPlayer);
+            }
+        }
+        
+        /// <summary>
+        /// Plays a sound effect by loading and playing the specified file.
+        /// </summary>
+        /// <param name="player">The audio player to use</param>
+        /// <param name="soundName">The name of the sound file (without path)</param>
+        /// <param name="loop">Whether to loop the sound</param>
+        private void PlaySound(AudioStreamPlayer player, string soundName, bool loop = false)
+        {
+            if (player == null)
+                return;
+                
+            // Make sure the player is added to the scene before playing
+            EnsureAudioPlayersAddedToScene();
+
+            try
+            {
+                string soundPath = $"res://Assets/Sounds/Karya/{soundName}";
+                if (ResourceLoader.Exists(soundPath))
+                {
+                    // Use CallDeferred for all audio operations to avoid threading issues
+                    // This ensures operations happen on the main thread
+                    
+                    // Store the loop setting for manual loop handling
+                    if (player == _ambientSoundPlayer)
+                        _ambientSoundLooping = loop;
+                    else if (player == _effectSoundPlayer)
+                        _effectSoundLooping = loop;
+                    else if (player == _ghostSoundPlayer)
+                        _ghostSoundLooping = loop;
+                    
+                    // Load the audio resource
+                    AudioStream audioStream = ResourceLoader.Load<AudioStream>(soundPath);
+                    
+                    // Use CallDeferred for all player operations
+                    player.CallDeferred("stop"); // Stop current sound
+                    player.CallDeferred("set_stream", audioStream); // Set the new stream
+                    
+                    // Apply sound settings before playing
+                    player.CallDeferred("set_pitch_scale", _soundPitchScale);
+                    player.CallDeferred("set_volume_db", GetVolumeDb(player));
+                    
+                    // Play the sound
+                    player.CallDeferred("play"); // Play the sound
+                }
+                else
+                {
+                    GD.Print($"Sound file not found: {soundPath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                GD.PrintErr($"Error playing sound {soundName}: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// Checks if any looping sounds need to be restarted
+        /// </summary>
+        private void UpdateLoopingSounds()
+        {
+            // Use CallDeferred for all audio operations to avoid threading issues
+            
+            // Check ambient sound player
+            if (_ambientSoundLooping && _ambientSoundPlayer != null && !_ambientSoundPlayer.Playing && _ambientSoundStarted)
+            {
+                _ambientSoundPlayer.CallDeferred("play");
+            }
+            
+            // Check effect sound player
+            if (_effectSoundLooping && _effectSoundPlayer != null && !_effectSoundPlayer.Playing)
+            {
+                _effectSoundPlayer.CallDeferred("play");
+            }
+            
+            // Check ghost sound player
+            if (_ghostSoundLooping && _ghostSoundPlayer != null && !_ghostSoundPlayer.Playing)
+            {
+                _ghostSoundPlayer.CallDeferred("play");
+            }
+        }
+        
+        /// <summary>
+        /// Sets the ghost scale factor which affects sound volume
+        /// </summary>
+        /// <param name="scale">The new ghost scale</param>
+        public void SetGhostScale(float scale)
+        {
+            // Adjust sound volume based on ghost scale
+            // Larger ghosts = louder sounds
+            _soundVolumeScale = 0.7f + (scale * 0.3f); // Range: 0.85 to 1.3 for scale 0.5 to 2.0
+            
+            // Apply volume to all sound players
+            ApplySoundSettings();
+        }
+        
+        /// <summary>
+        /// Sets the horror effect intensity which affects sound processing
+        /// </summary>
+        /// <param name="intensity">The new horror intensity</param>
+        public void SetHorrorIntensity(float intensity)
+        {
+            _horrorIntensity = intensity;
+            
+            // Apply horror intensity to sound settings
+            ApplySoundSettings();
+        }
+        
+        /// <summary>
+        /// Applies current sound settings to all audio players
+        /// </summary>
+        private void ApplySoundSettings()
+        {
+            if (_ambientSoundPlayer == null || _effectSoundPlayer == null || 
+                _jumpscareSoundPlayer == null || _ghostSoundPlayer == null)
+                return;
+                
+            // Apply pitch scale (affected by animation speed)
+            _ambientSoundPlayer.CallDeferred("set_pitch_scale", _soundPitchScale * 0.8f); // Ambient sounds slightly lower pitch
+            _effectSoundPlayer.CallDeferred("set_pitch_scale", _soundPitchScale);
+            _jumpscareSoundPlayer.CallDeferred("set_pitch_scale", _soundPitchScale * 1.2f); // Jumpscare slightly higher pitch
+            _ghostSoundPlayer.CallDeferred("set_pitch_scale", _soundPitchScale);
+            
+            // Apply volume (affected by ghost scale and horror intensity)
+            _ambientSoundPlayer.CallDeferred("set_volume_db", GetVolumeDb(_ambientSoundPlayer));
+            _effectSoundPlayer.CallDeferred("set_volume_db", GetVolumeDb(_effectSoundPlayer));
+            _jumpscareSoundPlayer.CallDeferred("set_volume_db", GetVolumeDb(_jumpscareSoundPlayer));
+            _ghostSoundPlayer.CallDeferred("set_volume_db", GetVolumeDb(_ghostSoundPlayer));
+        }
+        
+        /// <summary>
+        /// Calculates the volume in decibels for a specific audio player
+        /// </summary>
+        /// <param name="player">The audio player to calculate volume for</param>
+        /// <returns>The volume in decibels</returns>
+        private float GetVolumeDb(AudioStreamPlayer player)
+        {
+            // Base volume depends on the player type
+            float baseVolume = 0;
+            
+            if (player == _ambientSoundPlayer)
+                baseVolume = -10; // Ambient is quieter
+            else if (player == _jumpscareSoundPlayer)
+                baseVolume = 5;   // Jumpscare is louder
+            
+            // Apply scaling factors
+            float scaledVolume = baseVolume;
+            
+            // Ghost scale affects volume (bigger ghosts = louder sounds)
+            scaledVolume += (_soundVolumeScale - 1.0f) * 6.0f; // Up to +/- 6dB based on scale
+            
+            // Horror intensity affects volume (more horror = more dynamic range)
+            if (player == _jumpscareSoundPlayer || player == _ghostSoundPlayer)
+            {
+                // Scary sounds get louder with higher horror intensity
+                scaledVolume += _horrorIntensity * 3.0f; // Up to +6dB for max horror
+            }
+            else if (player == _ambientSoundPlayer)
+            {
+                // Ambient gets quieter with higher horror for contrast
+                scaledVolume -= _horrorIntensity * 2.0f; // Up to -4dB for max horror
+            }
+            
+            return scaledVolume;
         }
 
         /// <summary>
@@ -534,6 +833,23 @@ namespace Drawing.Renderers
         }
 
         /// <summary>
+        /// Sets the animation speed and adjusts sound pitch accordingly.
+        /// </summary>
+        /// <param name="speed">The new animation speed.</param>
+        public void SetAnimationSpeed(float speed)
+        {
+            // Apply bounds checking like the original method had
+            _animationSpeed = Math.Max(0.1f, Math.Min(5.0f, speed));
+            
+            // Adjust sound pitch based on animation speed
+            // Faster animation = higher pitch, slower animation = lower pitch
+            _soundPitchScale = 0.7f + (_animationSpeed * 0.3f); // Range: 0.7 to 2.2 for speed 0.1 to 5.0
+            
+            // Apply pitch to all sound players
+            ApplySoundSettings();
+        }
+
+        /// <summary>
         /// Updates the animation state.
         /// </summary>
         /// <param name="delta">Time elapsed since the last update.</param>
@@ -542,8 +858,21 @@ namespace Drawing.Renderers
             if (!_animationEnabled)
                 return;
 
+            // Make sure audio players are added to the scene
+            EnsureAudioPlayersAddedToScene();
+            
+            // Start ambient sound if not already playing
+            if (!_ambientSoundStarted)
+            {
+                PlaySound(_ambientSoundPlayer, "ambient_horror.mp3", true);
+                _ambientSoundStarted = true;
+            }
+
             // Update animation time
             _animationTime += delta * _animationSpeed;
+            
+            // Check if any looping sounds need to be restarted
+            UpdateLoopingSounds();
 
             // Update fog particles
             for (int i = 0; i < _fogParticles.Count; i++)
@@ -670,6 +999,13 @@ namespace Drawing.Renderers
 
                         // Start the rolling head animation
                         _rollingHead.StartRollingHeadAnimation(startPosition, targetX);
+
+                        // Play rolling head sound
+                        if (!_rollingHeadSoundPlayed)
+                        {
+                            PlaySound(_effectSoundPlayer, "rolling_head.mp3");
+                            _rollingHeadSoundPlayed = true;
+                        }
                     }
                 }
             }
@@ -687,6 +1023,13 @@ namespace Drawing.Renderers
                         _isLadderAnimating = true;
                         _ladderOpenAmount = 0f;
 
+                        // Play ladder falling sound once
+                        if (!_ladderSoundPlayed)
+                        {
+                            PlaySound(_effectSoundPlayer, "ladder_fall.mp3");
+                            _ladderSoundPlayed = true;
+                        }
+
                         if (_animationTime >= 2.0f)
                         {
                             _animationStage = 1;
@@ -699,10 +1042,24 @@ namespace Drawing.Renderers
                     // Check if rolling head animation has started but is no longer active (completed)
                     if (_rollingHeadStarted && !_rollingHead.IsRollingHeadActive())
                     {
+                        // Play jumpscare sound when the head animation completes
+                        if (!_jumpscareTriggered)
+                        {
+                            PlaySound(_jumpscareSoundPlayer, "jumpscare.mp3");
+                            _jumpscareTriggered = true;
+                        }
+
                         // Make all giants visible immediately after jump scare
                         foreach (var giant in _people)
                         {
                             giant.SetVisible(true);
+                        }
+
+                        // Play ghost appear sound
+                        if (!_ghostAppearSoundPlayed)
+                        {
+                            PlaySound(_ghostSoundPlayer, "ghost_appear.mp3");
+                            _ghostAppearSoundPlayed = true;
                         }
 
                         // Position giants around the house - still far apart but closer than initial positions
@@ -938,6 +1295,41 @@ namespace Drawing.Renderers
 
                 case 7: // Final horror sequence - giants reach toward the house
                     {
+                        // Update ghost sound timer
+                        _ghostSoundTimer += delta;
+
+                        // Play random ghost sounds at intervals
+                        if (_ghostSoundTimer >= _ghostSoundInterval)
+                        {
+                            // Reset timer
+                            _ghostSoundTimer = 0f;
+
+                            // Play a random ghost sound
+                            int soundIndex = _random.Next(1, 4); // 1-3 for different ghost moans
+                            PlaySound(_ghostSoundPlayer, $"ghost_moan{soundIndex}.mp3");
+
+                            // Occasionally play whispers
+                            if (_random.NextDouble() < 0.3f)
+                            {
+                                // Delay whisper slightly
+                                // Instead of using Task.Delay which causes threading issues,
+                                // use a safer approach with CallDeferred
+                                SceneTree tree = _canvas.GetTree();
+                                if (tree != null)
+                                {
+                                    // Schedule the sound to play on the next frame
+                                    tree.CreateTimer(0.5f).Timeout += () => {
+                                        PlaySound(_effectSoundPlayer, "ghost_whisper.mp3");
+                                    };
+                                }
+                                else
+                                {
+                                    // Fallback if tree is not available
+                                    PlaySound(_effectSoundPlayer, "ghost_whisper.mp3");
+                                }
+                            }
+                        }
+
                         // Make giants perform threatening movements
                         for (int i = 0; i < _people.Count; i++)
                         {
@@ -1003,6 +1395,24 @@ namespace Drawing.Renderers
             _ladderExtendAmount = 0f;
             _rollingHeadStarted = false;
 
+            // Reset sound flags
+            _ambientSoundStarted = false;
+            _ladderSoundPlayed = false;
+            _rollingHeadSoundPlayed = false;
+            _jumpscareTriggered = false;
+            _ghostAppearSoundPlayed = false;
+            _ghostSoundTimer = 0f;
+
+            // Stop any playing sounds using CallDeferred to avoid threading issues
+            if (_ambientSoundPlayer != null)
+                _ambientSoundPlayer.CallDeferred("stop");
+            if (_effectSoundPlayer != null)
+                _effectSoundPlayer.CallDeferred("stop");
+            if (_jumpscareSoundPlayer != null)
+                _jumpscareSoundPlayer.CallDeferred("stop");
+            if (_ghostSoundPlayer != null)
+                _ghostSoundPlayer.CallDeferred("stop");
+
             // Make sure people list is properly initialized
             if (_people.Count != PEOPLE_COUNT)
             {
@@ -1016,13 +1426,7 @@ namespace Drawing.Renderers
             }
         }
 
-        /// <summary>
-        /// Sets the animation speed.
-        /// </summary>
-        public void SetAnimationSpeed(float speed)
-        {
-            _animationSpeed = Math.Max(0.1f, Math.Min(5.0f, speed));
-        }
+        // The enhanced SetAnimationSpeed method that adjusts sound pitch is defined above
 
         /// <summary>
         /// Shows or hides the ladder on the right side of the building.

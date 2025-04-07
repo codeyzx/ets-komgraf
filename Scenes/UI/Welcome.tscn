@@ -95,11 +95,6 @@ size_flags_horizontal = 4
 size_flags_vertical = 4
 text = "Exit"
 
-[node name="Label" type="Label" parent="MarginContainer/VBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 4
-text = "Menu"
-
 [connection signal="pressed" from="MarginContainer/VBoxContainer/BtnKarya1" to="." method="OnBtnKarya1Pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/BtnKarya2" to="." method="OnBtnKarya2Pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/BtnKarya3" to="." method="OnBtnKarya3Pressed"]
