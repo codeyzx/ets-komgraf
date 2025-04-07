@@ -26,6 +26,7 @@
 - [🎮 Game Content](#-game-content)
 - [📂 Project Structure](#-project-structure)
 - [📊 Repository Visualization](#-repository-visualization)
+- [🔄 Sequence Diagram: Horror Animation Flow](#-sequence-diagram-horror-animation-flow)
 - [💻 Technical Requirements](#-technical-requirements)
 - [⚙️ Installation](#️-installation)
 - [🎮 Controls](#-controls)
@@ -117,6 +118,140 @@ To better understand the structure and flow of the Batak Mythology: Tales of Ter
 ![Visualization of this repo](./diagram.svg)
 
 This visualization provides a high-level overview of the project's organization, making it easier to navigate and contribute.
+
+## 🔄 Sequence Diagram: Horror Animation Flow
+
+The following sequence diagram illustrates the interaction flow in the Karya4Scene, which features the haunted Batak house with animated horror elements:
+
+```mermaid
+---
+config:
+  theme: forest
+---
+sequenceDiagram
+    participant User
+    participant Karya4Scene
+    participant IntroScene
+    participant BuildingRenderer
+    participant AudioSystem
+    participant HorrorEffects
+    participant PersonComponent
+    User->>Karya4Scene: Load Scene
+    activate Karya4Scene
+    Karya4Scene->>Karya4Scene: _Ready()
+    Karya4Scene->>IntroScene: Create and Show
+    activate IntroScene
+    Karya4Scene->>Karya4Scene: SetProcessInput(true)
+    IntroScene-->>Karya4Scene: TreeExiting (Intro Completed)
+    deactivate IntroScene
+    Karya4Scene->>Karya4Scene: OnIntroCompleted()
+    Karya4Scene->>Karya4Scene: InitializeMainGame()
+    Karya4Scene->>BuildingRenderer: Create(this, _config)
+    activate BuildingRenderer
+    BuildingRenderer->>BuildingRenderer: InitializeSoundPlayers()
+    BuildingRenderer->>BuildingRenderer: LoadSoundFiles()
+    BuildingRenderer->>BuildingRenderer: InitializeDrawingParameters()
+    Karya4Scene->>Karya4Scene: CreateControls()
+    Karya4Scene->>Karya4Scene: CreateHorrorEffects()
+    Karya4Scene->>HorrorEffects: Create _darkOverlay
+    activate HorrorEffects
+    Karya4Scene->>HorrorEffects: Create _flickerTimer
+    Karya4Scene->>Karya4Scene: EnsureBackButtonAccessibility()
+    loop Every Frame
+        Karya4Scene->>Karya4Scene: _Process(delta)
+        Karya4Scene->>BuildingRenderer: UpdateAnimation(delta)
+        BuildingRenderer->>BuildingRenderer: Update Animation Time
+        BuildingRenderer->>BuildingRenderer: Update Animation Stages
+        BuildingRenderer->>BuildingRenderer: Update Sound Effects
+        Karya4Scene->>Karya4Scene: ApplyAnimationSettings()
+        Karya4Scene->>BuildingRenderer: SetAnimationSpeed()
+        Karya4Scene->>BuildingRenderer: SetGhostScale()
+        Karya4Scene->>BuildingRenderer: SetHorrorIntensity()
+        Karya4Scene->>Karya4Scene: QueueRedraw()
+        alt Flicker Timer Active
+            HorrorEffects->>HorrorEffects: Update Flicker Effect
+        end
+    end
+    User->>Karya4Scene: Input Event
+    Karya4Scene->>Karya4Scene: _Input(event)
+    alt Mouse Click on Back Button
+        Karya4Scene->>Karya4Scene: NavigateToWelcomeScene()
+    else Key Press
+        alt Space Key
+            Karya4Scene->>BuildingRenderer: StartAnimation()
+            Karya4Scene->>HorrorEffects: Start Flicker Timer
+        else Q/W Keys
+            Karya4Scene->>BuildingRenderer: SetAnimationSpeed(±0.1)
+            Karya4Scene->>Karya4Scene: Update Speed Label
+        else Z/X Keys
+            Karya4Scene->>Karya4Scene: Update Horror Effect Intensity(±0.1)
+            Karya4Scene->>Karya4Scene: UpdateHorrorEffects()
+            Karya4Scene->>BuildingRenderer: SetHorrorIntensity()
+        else D/F Keys
+            Karya4Scene->>Karya4Scene: Update Ghost Scale(±0.1)
+            Karya4Scene->>BuildingRenderer: SetGhostScale()
+        end
+    end
+    Karya4Scene->>Karya4Scene: _Draw()
+    Karya4Scene->>BuildingRenderer: Draw()
+    BuildingRenderer->>BuildingRenderer: DrawBuilding()
+    BuildingRenderer->>BuildingRenderer: DrawHorrorEffects()
+    alt Animation Stage 0
+        BuildingRenderer->>BuildingRenderer: Show Building
+    else Animation Stage 1
+        BuildingRenderer->>BuildingRenderer: Show Ladder Animation
+        BuildingRenderer->>AudioSystem: Play Ladder Sound
+    else Animation Stage 2
+        BuildingRenderer->>BuildingRenderer: Show Rolling Head
+        BuildingRenderer->>AudioSystem: Play Rolling Head Sound
+    else Animation Stage 3
+        BuildingRenderer->>PersonComponent: Create Ghost Characters
+        BuildingRenderer->>AudioSystem: Play Ghost Sounds
+    else Animation Stage 4
+        BuildingRenderer->>BuildingRenderer: Trigger Jumpscare
+        BuildingRenderer->>AudioSystem: Play Jumpscare Sound
+    end
+    User->>Karya4Scene: Resize Window
+    Karya4Scene->>Karya4Scene: _Notification(NotificationWMSizeChanged)
+    Karya4Scene->>BuildingRenderer: InitializeDrawingParameters(new size)
+    User->>Karya4Scene: Press Escape/Back Button
+    Karya4Scene->>Karya4Scene: NavigateToWelcomeScene()
+    deactivate BuildingRenderer
+    deactivate HorrorEffects
+    deactivate Karya4Scene
+```
+
+### 📝 Sequence Diagram Explanation
+
+#### Initialization Phase
+
+1. **Scene Loading**: When the user loads Karya4Scene, it initializes and shows an intro narrative about Begu Ganjang
+2. **Intro Completion**: After the intro finishes, the main game initializes with the BuildingRenderer
+3. **Setup**: The system creates horror effects, sound players, and UI controls
+
+#### Runtime Loop
+
+1. **Animation Updates**: Every frame, the animation time advances, potentially triggering new animation stages
+2. **Horror Effects**: Flickering lights and other horror effects update based on intensity settings
+3. **User Controls**: Players can adjust animation speed, ghost scale, and horror intensity
+
+#### Animation Stages
+
+1. **Stage 0**: Initial display of the Batak house
+2. **Stage 1**: Ladder animation with creaking sounds
+3. **Stage 2**: Rolling head animation with eerie sound effects
+4. **Stage 3**: Ghost characters appear with haunting sounds
+5. **Stage 4**: Final jumpscare with intense audio
+
+#### User Interaction
+
+- **Space Key**: Starts the horror animation sequence
+- **Q/W Keys**: Adjusts animation speed
+- **Z/X Keys**: Controls horror effect intensity
+- **D/F Keys**: Changes ghost scale
+- **Back Button/Escape**: Returns to the welcome screen
+
+This diagram illustrates how the horror elements are orchestrated to create a progressively terrifying experience while maintaining user control over the intensity.
 
 ---
 
