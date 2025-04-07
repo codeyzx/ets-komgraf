@@ -217,6 +217,13 @@ namespace Scenes
                 }
             }
 
+            // Handle ambient creepy sound
+            if (creepyAudio != null && !creepyAudio.Playing)
+            {
+                // Play creepy sound
+                creepyAudio.Play();
+            }
+
             // Handle profile jumping to random positions
             profileJumpTimer -= (float)delta;
             if (profileJumpTimer <= 0)

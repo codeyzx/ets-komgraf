@@ -45,6 +45,9 @@ namespace Scenes
         // Add a field to track the last hovered button
         private Button _lastHoveredButton = null;
 
+        // Track if the hover sound was recently played to prevent rapid firing
+        private float _lastHoverSoundTime = 0f;
+
         public override void _Ready()
         {
             GD.Print("Welcome Scene Loaded");
@@ -63,6 +66,9 @@ namespace Scenes
 
                 // Setup audio
                 SetupAudio();
+
+                // Connect button signals for hover effects
+                ConnectButtonHoverSignals();
 
                 // Setup mouse effect container
                 SetupMouseEffects();
@@ -157,91 +163,34 @@ namespace Scenes
             {
                 GD.Print("Setting up audio...");
 
-                // Create background music player
+                // Background music
                 _backgroundMusic = new AudioStreamPlayer();
-                string soundPath = "res://Assets/Sounds/wind_howl.mp3";
-                GD.Print($"Attempting to load background music from: {soundPath}");
-                var musicStream = GD.Load<AudioStream>(soundPath);
-                if (musicStream == null)
-                {
-                    GD.PrintErr($"Failed to load background music from {soundPath}");
-                }
-                else
-                {
-                    _backgroundMusic.Stream = musicStream;
-                    _backgroundMusic.VolumeDb = -5; // Lower volume for background
-                    _backgroundMusic.Autoplay = false;
-                    AddChild(_backgroundMusic);
-                    GD.Print("Background music loaded successfully");
-                }
+                AddChild(_backgroundMusic);
+                _backgroundMusic.Stream = GD.Load<AudioStream>(
+                    "res://Assets/Sounds/Horror/horror_ambience.mp3"
+                );
+                _backgroundMusic.VolumeDb = -10;
+                _backgroundMusic.Play();
 
-                // Create heartbeat sound player
+                // Heartbeat sound
                 _heartbeatSound = new AudioStreamPlayer();
-                soundPath = "res://Assets/Sounds/heartbeat.mp3";
-                GD.Print($"Attempting to load heartbeat sound from: {soundPath}");
-                var heartbeatStream = GD.Load<AudioStream>(soundPath);
-                if (heartbeatStream == null)
-                {
-                    GD.PrintErr($"Failed to load heartbeat sound from {soundPath}");
-                }
-                else
-                {
-                    _heartbeatSound.Stream = heartbeatStream;
-                    _heartbeatSound.VolumeDb = 0; // Slightly louder than background
-                    AddChild(_heartbeatSound);
-                    GD.Print("Heartbeat sound loaded successfully");
-                }
+                AddChild(_heartbeatSound);
+                _heartbeatSound.Stream = GD.Load<AudioStream>("res://Assets/Sounds/heartbeat.mp3");
+                _heartbeatSound.VolumeDb = -5;
 
-                // Create siren sound player
+                // Siren sound
                 _sirenSound = new AudioStreamPlayer();
-                soundPath = "res://Assets/Sounds/siren.mp3";
-                GD.Print($"Attempting to load siren sound from: {soundPath}");
-                var sirenStream = GD.Load<AudioStream>(soundPath);
-                if (sirenStream == null)
-                {
-                    GD.PrintErr($"Failed to load siren sound from {soundPath}");
-                }
-                else
-                {
-                    _sirenSound.Stream = sirenStream;
-                    _sirenSound.VolumeDb = 0;
-                    AddChild(_sirenSound);
-                    GD.Print("Siren sound loaded successfully");
-                }
+                AddChild(_sirenSound);
+                _sirenSound.Stream = GD.Load<AudioStream>("res://Assets/Sounds/siren.mp3");
+                _sirenSound.VolumeDb = -15;
 
-                // Create hover sound player
+                // Hover sound
                 _hoverSound = new AudioStreamPlayer();
-                soundPath = "res://Assets/Sounds/hover.mp3";
-                GD.Print($"Attempting to load hover sound from: {soundPath}");
-                var hoverStream = GD.Load<AudioStream>(soundPath);
-                if (hoverStream == null)
-                {
-                    // If hover.mp3 doesn't exist, try to use another existing sound
-                    soundPath = "res://Assets/Sounds/heartbeat.mp3";
-                    hoverStream = GD.Load<AudioStream>(soundPath);
-                    if (hoverStream == null)
-                    {
-                        GD.PrintErr($"Failed to load fallback sound from {soundPath}");
-                    }
-                    else
-                    {
-                        GD.Print($"Successfully loaded fallback sound from {soundPath}");
-                    }
-                }
-                else
-                {
-                    GD.Print($"Successfully loaded hover sound from {soundPath}");
-                }
-
-                if (hoverStream != null)
-                {
-                    _hoverSound.Stream = hoverStream;
-                    _hoverSound.VolumeDb = 10; // Increased volume to be clearly audible
-                    AddChild(_hoverSound);
-                    GD.Print("Hover sound loaded successfully");
-                }
+                AddChild(_hoverSound);
+                _hoverSound.Stream = GD.Load<AudioStream>("res://Assets/Sounds/hover.mp3");
+                _hoverSound.VolumeDb = -5;
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 GD.PrintErr($"Error setting up audio: {e.Message}");
             }
@@ -341,9 +290,6 @@ namespace Scenes
 
                         // Store original position to prevent unwanted movement
                         button.SetMeta("_original_position", button.Position);
-
-                        // We no longer need to connect the MouseEntered/MouseExited signals
-                        // as we're now checking for hovering in the _Process method
 
                         // Add random subtle animation to each button
                         // But avoid the shake effect that causes positioning issues
@@ -537,92 +483,26 @@ namespace Scenes
             }
         }
 
-        // Check if any buttons are being hovered and play sound if needed
-        private void CheckButtonHovering()
-        {
-            try
-            {
-                Button currentHoveredButton = null;
-
-                // Check all buttons in the container
-                foreach (Node child in _buttonsContainer.GetChildren())
-                {
-                    if (child is Button button && button.IsHovered())
-                    {
-                        currentHoveredButton = button;
-                        break;
-                    }
-                }
-
-                // If we're hovering over a different button than before
-                if (currentHoveredButton != null && currentHoveredButton != _lastHoveredButton)
-                {
-                    GD.Print($"Button {currentHoveredButton.Name} is now hovered");
-
-                    // Play the hover sound
-                    if (_hoverSound != null)
-                    {
-                        // Always stop and restart the sound to ensure it plays
-                        _hoverSound.Stop();
-
-                        // Randomize pitch for variety
-                        _hoverSound.PitchScale = _rng.RandfRange(0.8f, 1.2f);
-
-                        // Ensure volume is high enough to be heard
-                        _hoverSound.VolumeDb = 10;
-
-                        // Play the sound
-                        _hoverSound.Play();
-                        GD.Print($"Playing hover sound for button {currentHoveredButton.Name}");
-                    }
-
-                    // Apply visual hover effect
-                    ApplyButtonHoverEffect(currentHoveredButton);
-
-                    // If we were hovering over a different button before, reset it
-                    if (_lastHoveredButton != null)
-                    {
-                        ResetButtonHoverEffect(_lastHoveredButton);
-                    }
-
-                    // Update the last hovered button
-                    _lastHoveredButton = currentHoveredButton;
-                }
-                // If we're no longer hovering over any button
-                else if (currentHoveredButton == null && _lastHoveredButton != null)
-                {
-                    ResetButtonHoverEffect(_lastHoveredButton);
-                    _lastHoveredButton = null;
-                }
-            }
-            catch (Exception e)
-            {
-                GD.PrintErr($"Error in CheckButtonHovering: {e.Message}");
-            }
-        }
-
         // Apply visual hover effect to a button
         private void ApplyButtonHoverEffect(Button button)
         {
             try
             {
-                // Create a horror-themed hover animation
+                // Apply hover effect
+                button.Modulate = new Color(1.2f, 1.2f, 1.2f, 1.0f);
+                button.Scale = new Vector2(1.05f, 1.05f);
+
+                // Store the original rotation for reference
+                float originalRotation = button.Rotation;
+
+                // Add subtle rotation animation
                 Tween tween = GetTree().CreateTween();
-
-                // Scale up slightly
-                tween.TweenProperty(button, "scale", new Vector2(1.2f, 1.2f), 0.3f);
-
-                // Add a slight rotation for unsettling effect
-                if (button.HasMeta("_original_rotation"))
-                {
-                    float originalRotation = (float)button.GetMeta("_original_rotation");
-                    tween.TweenProperty(
-                        button,
-                        "rotation",
-                        originalRotation + _rng.RandfRange(-0.1f, 0.1f),
-                        0.3f
-                    );
-                }
+                tween.TweenProperty(
+                    button,
+                    "rotation",
+                    originalRotation + _rng.RandfRange(-0.1f, 0.1f),
+                    0.3f
+                );
 
                 // Increase distortion around button
                 _distortionIntensity += 0.2f;
@@ -907,11 +787,49 @@ namespace Scenes
             {
                 _heartbeatSound.Play();
             }
+
+            // Play hover sound with cooldown to prevent rapid firing
+            float currentTime = (float)Time.GetTicksMsec() / 1000.0f;
+            if (currentTime - _lastHoverSoundTime > 0.1f) // 100ms cooldown
+            {
+                if (_hoverSound != null && _hoverSound.Stream != null)
+                {
+                    _hoverSound.Play();
+                    _lastHoverSoundTime = currentTime;
+                }
+            }
+
+            // Get the button that triggered this event
+            Button button = GetTree().Root.GetViewport().GetNode<Button>(".") as Button;
+            if (button != null)
+            {
+                // Apply horror-themed hover effect
+                button.Scale = new Vector2(1.05f, 1.05f);
+
+                // Change text color to blood red
+                Color bloodColor = new Color(0.8f, 0.0f, 0.0f);
+                button.AddThemeColorOverride("font_color", bloodColor);
+
+                // Update the last hovered button
+                _lastHoveredButton = button;
+            }
         }
 
         private void OnButtonExited()
         {
-            // No specific action needed
+            // Reset button to normal state
+            Button button = _lastHoveredButton;
+            if (button != null)
+            {
+                // Reset scale
+                button.Scale = new Vector2(1.0f, 1.0f);
+
+                // Reset overrides
+                button.RemoveThemeColorOverride("font_color");
+
+                // Clear the last hovered button
+                _lastHoveredButton = null;
+            }
         }
 
         private void OnFlickerTimeout()
@@ -1134,12 +1052,232 @@ namespace Scenes
                     {
                         GD.PrintErr($"Error connecting {buttonEntry.Key}: {error}");
                     }
+
+                    // Connect mouse enter/exit signals for hover sound functionality
+                    // Individual button connections are now handled in the ConnectButtonHoverSignals method
                 }
                 catch (Exception e)
                 {
                     GD.PrintErr($"Exception connecting {buttonEntry.Key}: {e.Message}");
                 }
             }
+
+            // Also connect hover signals for any buttons in the main container that might not be in the dictionary
+            if (_buttonsContainer != null)
+            {
+                foreach (Node child in _buttonsContainer.GetChildren())
+                {
+                    if (child is Button button && !button.Name.Equals("Title"))
+                    {
+                        // Individual button connections are now handled in the ConnectButtonHoverSignals method
+                    }
+                }
+            }
+        }
+
+        // Check which button is currently being hovered and play sound if it changes
+        private void CheckButtonHovering()
+        {
+            // Get current mouse position
+            Vector2 mousePos = GetViewport().GetMousePosition();
+
+            // Check if we're hovering over any buttons
+            Button currentHoveredButton = null;
+
+            // Check buttons in the horror menu container
+            var menuContainer = GetNodeOrNull<Control>(
+                "MarginContainer/VBoxContainer/HorrorMenuContainer"
+            );
+            if (menuContainer != null)
+            {
+                foreach (Node child in menuContainer.GetChildren())
+                {
+                    if (child is Button button)
+                    {
+                        Rect2 buttonRect = button.GetGlobalRect();
+                        if (buttonRect.HasPoint(mousePos))
+                        {
+                            currentHoveredButton = button;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Check main buttons if none found in container
+            if (currentHoveredButton == null)
+            {
+                var buttons = new string[]
+                {
+                    "BtnExit",
+                    "BtnKarya1",
+                    "BtnKarya2",
+                    "BtnKarya3",
+                    "BtnKarya4",
+                    "BtnAbout",
+                    "BtnGuide",
+                };
+                foreach (var buttonName in buttons)
+                {
+                    string buttonPath = $"MarginContainer/VBoxContainer/{buttonName}";
+                    var button = GetNodeOrNull<Button>(buttonPath);
+                    if (button != null)
+                    {
+                        Rect2 buttonRect = button.GetGlobalRect();
+                        if (buttonRect.HasPoint(mousePos))
+                        {
+                            currentHoveredButton = button;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // If we're hovering over a different button than before, play the hover sound
+            if (currentHoveredButton != null && currentHoveredButton != _lastHoveredButton)
+            {
+                // Prevent sound from playing too frequently (add a small cooldown)
+                float currentTime = (float)Time.GetTicksMsec() / 1000.0f;
+                if (currentTime - _lastHoverSoundTime > 0.1f) // 100ms cooldown
+                {
+                    if (_hoverSound != null && _hoverSound.Stream != null)
+                    {
+                        _hoverSound.Play();
+                        _lastHoverSoundTime = currentTime;
+                    }
+                }
+
+                // Apply hover effect to the button
+                ApplyButtonHoverEffect(currentHoveredButton);
+
+                // Reset hover effect on previous button
+                if (_lastHoveredButton != null)
+                {
+                    ResetButtonHoverEffect(_lastHoveredButton);
+                }
+            }
+            else if (currentHoveredButton == null && _lastHoveredButton != null)
+            {
+                // Mouse is not hovering over any button now, reset the last button
+                ResetButtonHoverEffect(_lastHoveredButton);
+            }
+
+            // Update the last hovered button
+            _lastHoveredButton = currentHoveredButton;
+        }
+
+        // Connect mouse enter/exit signals for buttons to handle hover effects
+        private void ConnectButtonHoverSignals()
+        {
+            try
+            {
+                // Connect buttons in the main container
+                if (_buttonsContainer != null)
+                {
+                    foreach (Node child in _buttonsContainer.GetChildren())
+                    {
+                        if (child is Button button)
+                        {
+                            // First disconnect any existing connections to avoid duplicates
+                            if (
+                                button.IsConnected(
+                                    "mouse_entered",
+                                    new Callable(this, nameof(OnButtonMouseEntered))
+                                )
+                            )
+                            {
+                                button.Disconnect(
+                                    "mouse_entered",
+                                    new Callable(this, nameof(OnButtonMouseEntered))
+                                );
+                            }
+
+                            if (
+                                button.IsConnected(
+                                    "mouse_exited",
+                                    new Callable(this, nameof(OnButtonMouseExited))
+                                )
+                            )
+                            {
+                                button.Disconnect(
+                                    "mouse_exited",
+                                    new Callable(this, nameof(OnButtonMouseExited))
+                                );
+                            }
+
+                            // Connect mouse signals
+                            button.Connect(
+                                "mouse_entered",
+                                new Callable(this, nameof(OnButtonMouseEntered))
+                            );
+                            button.Connect(
+                                "mouse_exited",
+                                new Callable(this, nameof(OnButtonMouseExited))
+                            );
+                        }
+                    }
+                }
+
+                GD.Print("Button hover signals connected successfully");
+            }
+            catch (Exception e)
+            {
+                GD.PrintErr($"Error connecting button hover signals: {e.Message}");
+            }
+        }
+
+        // Handle mouse entering a button
+        private void OnButtonMouseEntered()
+        {
+            // Play hover sound
+            float currentTime = (float)Time.GetTicksMsec() / 1000.0f;
+            if (currentTime - _lastHoverSoundTime > 0.1f) // 100ms cooldown
+            {
+                if (_hoverSound != null && _hoverSound.Stream != null)
+                {
+                    _hoverSound.Play();
+                    _lastHoverSoundTime = currentTime;
+                }
+            }
+
+            // Get the button that triggered this event
+            if (GetViewport().GetMousePosition() != Vector2.Zero)
+            {
+                CheckButtonHovering(); // This will apply the hover effect
+            }
+        }
+
+        // Handle mouse exiting a button
+        private void OnButtonMouseExited()
+        {
+            // Reset hover effect on the last hovered button
+            if (_lastHoveredButton != null)
+            {
+                ResetButtonHoverEffect(_lastHoveredButton);
+                _lastHoveredButton = null;
+            }
+        }
+
+        // Create a horror-themed stylebox
+        private StyleBoxFlat CreateHorrorStylebox(Color baseColor)
+        {
+            StyleBoxFlat style = new StyleBoxFlat();
+            style.BgColor = new Color(
+                baseColor.R * 0.3f,
+                baseColor.G * 0.3f,
+                baseColor.B * 0.3f,
+                0.4f
+            );
+            style.BorderColor = baseColor;
+            style.BorderWidthBottom = 2;
+            style.BorderWidthLeft = 1;
+            style.BorderWidthRight = 1;
+            style.BorderWidthTop = 1;
+            style.CornerRadiusBottomLeft = 4;
+            style.CornerRadiusBottomRight = 4;
+            style.CornerRadiusTopLeft = 4;
+            style.CornerRadiusTopRight = 4;
+            return style;
         }
 
         // Create an innovative horror-themed menu layout inspired by popular horror games
